@@ -1,0 +1,20 @@
+[package]
+name = "nebula-factory"
+description = "Deploys and registers Nebula Folios from a versioned wasm hash"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["lib", "cdylib"]
+doctest = false
+
+[dependencies]
+soroban-sdk = { workspace = true }
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }
+nebula-interfaces = { workspace = true }
+nebula-mock-price-feed = { workspace = true }
+nebula-oracle-router = { workspace = true }

@@ -1,0 +1,38 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/nebula-interfaces",
+    "contracts/oracle-router",
+    "contracts/folio",
+    "contracts/factory",
+    "contracts/mock-price-feed",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.84"
+license = "MIT"
+
+[workspace.dependencies]
+soroban-sdk = "26.1.0"
+stellar-tokens = "0.7.2"
+nebula-interfaces = { path = "crates/nebula-interfaces" }
+nebula-oracle-router = { path = "contracts/oracle-router" }
+nebula-mock-price-feed = { path = "contracts/mock-price-feed" }
+nebula-folio = { path = "contracts/folio" }
+
+# Money code: overflow checks stay ON in release wasm.
+[profile.release]
+opt-level = "z"
+overflow-checks = true
+debug = 0
+strip = "symbols"
+debug-assertions = false
+panic = "abort"
+codegen-units = 1
+lto = true
+
+[profile.release-with-logs]
+inherits = "release"
+debug-assertions = true

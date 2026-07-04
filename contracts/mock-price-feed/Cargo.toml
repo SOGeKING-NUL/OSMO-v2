@@ -1,0 +1,18 @@
+[package]
+name = "nebula-mock-price-feed"
+description = "Settable SEP-40 price feed for tests and testnet development"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["lib", "cdylib"]
+doctest = false
+
+[dependencies]
+soroban-sdk = { workspace = true }
+nebula-interfaces = { workspace = true }
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }

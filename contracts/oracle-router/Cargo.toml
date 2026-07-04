@@ -1,0 +1,19 @@
+[package]
+name = "nebula-oracle-router"
+description = "Validated price lookups (SEP-40) for Nebula Folios: staleness guard + decimal normalization"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["lib", "cdylib"]
+doctest = false
+
+[dependencies]
+soroban-sdk = { workspace = true }
+nebula-interfaces = { workspace = true }
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }
+nebula-mock-price-feed = { workspace = true }

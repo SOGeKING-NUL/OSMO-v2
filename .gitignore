@@ -1,0 +1,6 @@
+target/
+.stellar/
+*.wasm
+!fixtures/**/*.wasm
+.env
+node_modules/

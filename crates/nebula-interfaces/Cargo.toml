@@ -1,0 +1,10 @@
+[package]
+name = "nebula-interfaces"
+description = "Shared types and cross-contract clients for Nebula DTF"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+soroban-sdk = { workspace = true }

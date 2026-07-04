@@ -1,0 +1,21 @@
+[package]
+name = "nebula-folio"
+description = "Nebula DTF Folio: multi-asset basket custody with a SEP-41 share token, proportional mint/redeem and oracle NAV"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["lib", "cdylib"]
+doctest = false
+
+[dependencies]
+soroban-sdk = { workspace = true }
+stellar-tokens = { workspace = true }
+nebula-interfaces = { workspace = true }
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }
+nebula-mock-price-feed = { workspace = true }
+nebula-oracle-router = { workspace = true }
