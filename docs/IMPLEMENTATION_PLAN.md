@@ -209,6 +209,27 @@ have to seed our own pools first (permissionless — `add_liquidity` auto-create
 the factory on first call, same as Uniswap V2) purely so there's something for the code to
 swap against; this is testnet-only scaffolding, never a mainnet step.
 
+**Explicitly considered and rejected: building our own custom pool/AMM contract.** The gap
+here is "nobody has added liquidity for our tokens," not "Soroswap can't handle our tokens" —
+confirmed directly against the real source (`soroswap/core`): `create_pair` has **no auth
+check at all** and works for any two arbitrary token addresses, no allowlist; `add_liquidity`
+auto-creates the pair if missing; the LP's single signed transaction covers the whole call
+tree (Soroban's native multi-invocation auth — no separate approve step, same pattern our own
+`mint` already uses). A custom AMM would mean writing and auditing constant-product math, LP
+accounting, and rounding/reentrancy safety ourselves — exactly the class of code most likely
+to hide a subtle bug — for zero functional gain, and it would have to be **thrown away before
+mainnet** (nobody trades real assets against a private pool). Seeding the real, unmodified
+Router is a testnet-only scaffolding step; the mainnet code path needs no such step at all
+since real AQUA/EURC/USDC/XLM liquidity already exists there.
+
+**Seeding plan — hub-and-spoke via XLM, 4 pools:** since XLM is already one of the 5 basket
+assets, pairing every other asset against it (rather than all 10 possible pairs) gives every
+asset a 1-hop path to XLM and a 2-hop path to any other asset — exactly what `mint_single_asset`
+needs, at minimum cost. `XLM/tstAQUA`, `XLM/tstVELO`, `XLM/tstUSDC`, `XLM/tstEURC`, each one
+`add_liquidity` call sized off the live relayed prices we already have (`price-relay.ps1`) so
+initial pool ratios aren't degenerate. Not yet built — a `scripts/seed-pools.ps1` companion to
+`setup-testnet.ps1`, same idempotent-rerun conventions.
+
 **Folio contract design** — new function, additive (doesn't touch existing `mint`):
 
 ```
