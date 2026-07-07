@@ -78,6 +78,7 @@ mis-price a recurring mint or block an exit. It also means mint needs per-leg `m
 bounds (balances can shift between simulation and submission) instead of ratio validation.
 
 ### ADR-012 — Test tokens are self-issued classic assets, `T`-prefixed
+**Superseded by ADR-014 (2026-07-06)** — kept for history; see below for the current design.
 **Decision:** On testnet we issue classic assets `TAQUA`, `TVELO`, `TUSDC`, `TEURC` from a
 dedicated `nebula-test-issuer` account and deploy their SACs; XLM uses the real native asset.
 Prices come from `MockPriceFeed` (never deployed to mainnet). The router's per-token
@@ -94,6 +95,28 @@ same `connectWallet()` seam once the Launchtube token arrives.
 external approvals. The mint "asset-ratio helper" is free with this design: simulating
 `mint` returns the exact required deposits, which the UI shows before the user signs
 (then sends with a 0.5% `max_deposits` buffer).
+
+### ADR-014 — Testnet asset prices sourced via off-chain relay from real mainnet Reflector
+**Decision:** Supersedes ADR-012. Test tokens renamed `tst`-prefixed (`tstAQUA`, `tstVELO`,
+`tstUSDC`, `tstEURC`); their oracle price is no longer arbitrary. An off-chain script
+(`scripts/price-relay.ps1`) reads **real, live prices from mainnet** Reflector's public
+"Stellar Pubnet Pulse Oracle" (`CALI2BYU2JE6WVRUFYTS6MSBNEHGJ35P4AVCZYF3B6QOE3QKOB2PLE6M`,
+confirmed free/no invocation fee) via a plain read-only CLI call, and writes those real numbers
+into our own testnet `MockPriceFeed` (`refresh-prices.ps1` / initial stamp in
+`setup-testnet.ps1`). USDC is fixed at $1.00 (it's this oracle's own base/numeraire asset,
+confirmed via `base()`). VELO has no coverage under either known mainnet issuer (both tested
+live, both null) and stays a clearly-labeled simulated placeholder.
+**Why:** A testnet contract can never call a mainnet contract on-chain — separate ledgers, no
+shared execution, not a Soroban config option. So "find a live testnet oracle" was the wrong
+frame entirely; the fix is an off-chain relay copying real mainnet data onto our own
+already-built, already-controlled testnet feed. Zero contract changes required — the
+`OracleRouter`'s token/asset decoupling and `MockPriceFeed`'s settable-price design already
+supported exactly this. Full derivation and dead ends explored: `CHALLENGES_AND_DECISIONS.md`
+Challenge 2.
+**Consequence:** basket asset prices (except VELO) now track real markets, so bootstrap
+deposit amounts can no longer be hardcoded — they're computed dynamically in
+`setup-testnet.ps1` from the live relayed prices and target weights (`[bigint]` arithmetic;
+intermediate values exceed int64).
 
 ---
 
@@ -186,3 +209,86 @@ external approvals. The mint "asset-ratio helper" is free with this design: simu
 - **External deps touched:** npm registry (React 19, stellar-sdk 14, freighter-api 4,
   Vite 6); Node 22.13 local.
 ```
+
+### [2026-07-06] Oracle rework — mainnet price relay, tst-tokens, fresh testnet deploy
+- **Built:** ADR-014 (see above) — `scripts/price-relay.ps1` (shared `Get-RelayedPrices`:
+  live mainnet Reflector query for XLM/AQUA/EURC, fixed $1.00 for USDC, simulated placeholder
+  for VELO); `refresh-prices.ps1` and `setup-testnet.ps1` rewritten to consume it; DIA
+  stand-in feed dropped from testnet deployment (single real feed per token, per the earlier
+  "DIA is overkill" decision). `setup-testnet.ps1` now computes bootstrap deposit amounts
+  dynamically from the live relayed prices and target weights (`[bigint]` math — the formula
+  `deposit_units = TOTAL_USD * weight_bps * 10^17 / price_14dec` needs >int64 precision)
+  instead of hardcoding stale amounts.
+- **Deployed (fresh testnet stack, old one retired):** tokens `tstAQUA`/`tstVELO`/`tstUSDC`/
+  `tstEURC` (self-issued, ADR-014); MockPriceFeed stamped with real relayed prices at deploy
+  time (XLM $0.1951, AQUA $0.00037933, EURC $1.1413, USDC $1.00, VELO $0.02 simulated);
+  OracleRouter, Factory, and a new **SEF Folio
+  `CCFC3Z74YYOXMRZMXZTSGO4KCARSZW3CDSNLGV63E5RAEBWIGW2E54LB`** bootstrapped at $99.9999999795
+  (~$100 target) with ratio check passing on the first try using dynamically-computed
+  deposits. Addresses in `.stellar/nebula-testnet.json`.
+- **App updated:** `config.ts` FOLIO_ID and TOKEN_INFO repointed to the new addresses;
+  `smoke.mjs` re-verified live (NAV, 5 assets, supply). Added a small UI marker
+  (`TOKEN_INFO.simulated`) that renders "(simulated)" next to tstVELO in the holdings table,
+  so the one asset without real oracle backing is visibly flagged, not hidden.
+- **Decisions this stage:** confirmed (live, on-chain) that Reflector's `Stellar(Address)`
+  identifier is always the **mainnet**-computed SAC address regardless of which network the
+  oracle contract runs on; confirmed via `base()` that USDC is this oracle's own numeraire;
+  confirmed VELO has zero Reflector coverage under either candidate mainnet issuer.
+- **Changed vs plan:** superseded the "find a live testnet Reflector oracle" approach entirely
+  — architecturally impossible (cross-network contract calls don't exist in Soroban), not just
+  hard to find. Off-chain relay was the actual fix, needed zero contract changes.
+- **Deferred:** none new; VELO remains simulated until/unless a real feed appears (tracked in
+  `CHALLENGES_AND_DECISIONS.md`).
+- **External deps touched:** mainnet Soroban RPC (`https://mainnet.sorobanrpc.com`, read-only,
+  free) for the price relay; no mainnet write access, no mainnet funds needed.
+
+### [2026-07-06] Bug found live via app: missing trustlines block any fresh wallet from minting
+- **Found:** a real Freighter wallet (`GDCU5J...`) hit `"trustline entry is missing for
+  account"` on `tstAQUA` mid-mint. Root cause: classic (non-native) Stellar assets require the
+  receiving account to explicitly establish a trustline before it can hold that asset — a base
+  ledger rule, unrelated to our contracts. `nebula-user` (our scripted test identity) worked
+  fine only because `setup-testnet.ps1` explicitly ran `change-trust` for it. Any other wallet
+  — i.e. every real user — was silently blocked from minting at all. Confirmed live: this
+  specific account has a trustline to an unrelated real testnet USDC but none of our 4 `tst*`
+  assets.
+- **Built:** `lib/folio.ts` — `getMissingTrustlines(publicKey)` (Horizon `loadAccount`, diffs
+  against `TRUSTLINE_ASSETS` from config) and `addTrustlines(publicKey, assets)` (builds one
+  `changeTrust` op per missing asset in a single transaction, signs via Freighter, submits to
+  Horizon directly — this is a classic-ledger operation, not a Soroban contract call, so it
+  goes through `TransactionBuilder`/`Horizon.Server`, not `contract.Client`). App: on wallet
+  connect, checks trustlines; if any missing, shows a banner explaining why (framed as a base
+  Stellar rule, not an app bug) with a one-click "Add trustlines" button; mint controls stay
+  disabled until resolved.
+- **Config:** added `VITE_HORIZON_URL` and `VITE_TEST_ISSUER` to `.env`; `TRUSTLINE_ASSETS`
+  list in `config.ts` (the 4 classic assets; XLM excluded, needs none).
+- **Decisions this stage:** redeem needed no equivalent guard — you can't hold shares without
+  having minted first, which already requires trustlines, so the gate on mint alone is
+  sufficient.
+- **Deferred:** actual browser click-through test with a funded Freighter wallet (verified the
+  detection logic against the real problem account via Node/Horizon directly; full UI flow
+  — banner, click "Add trustlines", confirm mint unblocks — not yet manually driven in a
+  browser). Do this before calling Stage 1.6 beta-ready.
+
+### [2026-07-06] Testnet faucet added
+- **Built:** `lib/faucet.ts` — `dripTestTokens(destination)` sends one payment transaction
+  (native XLM + all 4 `tst*` assets) signed by the issuer account directly. A "Testnet faucet"
+  card in the app runs the full onboarding in one click: check/add trustlines (user-signed via
+  Freighter) then the drip (issuer-signed, no user interaction needed) — resolves the same
+  friction the previous entry's trustline-banner fix surfaced, end to end.
+- **ADR-015 (inline decision, not worth a full entry above):** the issuer's secret key is
+  embedded client-side (`VITE_TEST_ISSUER_SECRET`), asked and confirmed with the user first.
+  Justified only because these are worthless self-issued testnet assets — worst case someone
+  else also mints free fake tokens or drains the issuer's test XLM (free, refillable via
+  Friendbot). **This pattern must never be used for a real or mainnet issuer.**
+- **Verified live, fully end-to-end:** a brand-new random keypair, Friendbot-funded from
+  nothing, ran the exact production code path (trustlines then drip) and ended with
+  1,000,000 tstAQUA / 10,000 tstVELO / 1,000 tstUSDC / 1,000 tstEURC / ~10,020 XLM. Proves the
+  whole "connect wallet -> get tokens -> mint" path works for a wallet with zero prior state,
+  not just our internally-provisioned `nebula-user`.
+- **Sizing:** drip amounts are demo-scale, not proportioned to the folio's live target weights
+  (20 XLM ~$3.9 is intentionally modest — mostly fee money, limits a single wallet to a few
+  shares' worth of test minting, which is enough to exercise the flow, not to move real
+  weight). Re-drip anytime; no per-wallet limit is enforced.
+- **Deferred:** still no manual browser click-through (script-verified only, both the
+  trustline fix and now the faucet); rate-limiting the faucet (not needed yet, low expected
+  usage during a hackathon).

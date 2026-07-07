@@ -5,7 +5,9 @@ deposits, redeem pro-rata anytime, live NAV from SEP-40 oracles (Reflector).
 
 **Docs:** [PRD](docs/stellar_dtf_prd.md) · [Implementation plan](docs/IMPLEMENTATION_PLAN.md) ·
 [Checklist](docs/CHECKLIST.md) · [Decision log](docs/DECISION_LOG.md) ·
-[External dependencies](docs/EXTERNAL_DEPENDENCIES.md)
+[External dependencies](docs/EXTERNAL_DEPENDENCIES.md) ·
+[**Current deployment (addresses + identities)**](docs/DEPLOYMENT.md) ·
+[Challenges & dead ends](docs/CHALLENGES_AND_DECISIONS.md)
 
 ## Layout
 
@@ -32,12 +34,15 @@ Build wasm before testing — the factory test imports the folio wasm.
 
 ```powershell
 scripts\setup-testnet.ps1    # identities, test tokens, full stack, bootstrapped SEF folio
-scripts\refresh-prices.ps1   # re-stamp mock oracle prices when they go stale
+scripts\refresh-prices.ps1   # re-relay live mainnet Reflector prices when the feed goes stale
 ```
 
-Test tokens are self-issued classic assets named `T<code>` (TAQUA mimics AQUA,
-TUSDC mimics USDC, …); XLM is the real native testnet asset. Addresses land in
-`.stellar/nebula-testnet.json`.
+Test tokens are self-issued classic assets named `tst<code>` (`tstAQUA` mimics AQUA,
+`tstUSDC` mimics USDC, …); XLM is the real native testnet asset. A testnet contract can never
+call a mainnet contract directly (separate ledgers), so `scripts/price-relay.ps1` reads real
+prices off mainnet Reflector and writes them into our own testnet price feed — see ADR-014 in
+[`DECISION_LOG.md`](docs/DECISION_LOG.md). `tstVELO` has no real Reflector coverage and stays a
+labeled simulated price. Addresses land in `.stellar/nebula-testnet.json`.
 
 ## Key invariants
 
