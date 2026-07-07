@@ -25,6 +25,8 @@ h1 { font-size: 1.5rem; }
   padding: 16px;
   margin: 12px 0;
 }
+.faucet { border-color: var(--accent); }
+.faucet p { color: var(--muted); font-size: 0.9rem; }
 .navrow { display: flex; gap: 24px; flex-wrap: wrap; }
 .label { color: var(--muted); font-size: 0.8rem; }
 .big { font-size: 1.4rem; font-weight: 600; }
@@ -44,6 +46,14 @@ button {
   cursor: pointer;
 }
 button:disabled { opacity: 0.45; cursor: default; }
+.trustline-banner {
+  background: rgba(240, 136, 62, 0.12);
+  border: 1px solid #f0883e;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+}
+.trustline-banner p { margin: 0 0 8px; color: #f0883e; font-size: 0.9rem; }
 input {
   background: var(--bg);
   border: 1px solid var(--line);

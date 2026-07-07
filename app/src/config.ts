@@ -1,21 +1,51 @@
-// Testnet deployment (see .stellar/nebula-testnet.json + docs/DECISION_LOG.md).
-// Override via VITE_* env vars for other networks.
+// All contract addresses live in .env (see that file for how to update after
+// a redeploy) - this module just reads them and attaches display metadata.
 
-export const NETWORK_PASSPHRASE =
-  import.meta.env.VITE_NETWORK_PASSPHRASE ?? "Test SDF Network ; September 2015";
-export const RPC_URL =
-  import.meta.env.VITE_RPC_URL ?? "https://soroban-testnet.stellar.org";
-export const FOLIO_ID =
-  import.meta.env.VITE_FOLIO_ID ??
-  "CAG2JRYQ4HROM5NX2PFWUPY5T2EEJPPQNWKSLHTNCFDHN7KWIFV7VR4Y";
+const env = import.meta.env;
 
-/** Display metadata per underlying token (SAC contract id -> info). */
-export const TOKEN_INFO: Record<string, { symbol: string; color: string }> = {
-  CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC: { symbol: "XLM", color: "#7b68ee" },
-  CB3OYUNWSCZF7W3XR3QAAR6JCVSOFYG54CBY33MXO4SCUCBK4LU6CUQL: { symbol: "TAQUA", color: "#9f4ef5" },
-  CBHOVSG2TI3KIKAO5IQP5A4DD3SI3UNFBSIIXF4HHYOW5ETNW4BHQXUB: { symbol: "TVELO", color: "#f5a623" },
-  CC2K3NLXUWJ7OW2PKQXHYVAF67VLRK7EXO6FPI223ICIHZPOWBAPQVD5: { symbol: "TUSDC", color: "#2775ca" },
-  CAJ4MSRBF4QXS6WOOE63FCMY6LPHLPZ356Y4TA2456FG77F4YJSEV5K2: { symbol: "TEURC", color: "#1a9c6b" },
+export const NETWORK_PASSPHRASE = env.VITE_NETWORK_PASSPHRASE;
+export const RPC_URL = env.VITE_RPC_URL;
+export const HORIZON_URL = env.VITE_HORIZON_URL;
+export const FOLIO_ID = env.VITE_FOLIO_ID;
+export const ROUTER_ID = env.VITE_ROUTER_ID;
+
+/**
+ * Classic (non-native) assets in the basket - each requires the holder to
+ * establish a trustline before they can receive it (see lib/folio.ts
+ * ensureTrustlines). XLM is native and needs no trustline.
+ */
+export const TRUSTLINE_ASSETS = [
+  { code: "tstAQUA", issuer: env.VITE_TEST_ISSUER },
+  { code: "tstVELO", issuer: env.VITE_TEST_ISSUER },
+  { code: "tstUSDC", issuer: env.VITE_TEST_ISSUER },
+  { code: "tstEURC", issuer: env.VITE_TEST_ISSUER },
+];
+
+/** TESTNET ONLY - see .env for why this is safe to ship client-side here. */
+export const TEST_ISSUER_SECRET = env.VITE_TEST_ISSUER_SECRET;
+
+/** One drip's worth of each asset, in whole-token units (not stroops/units). */
+export const FAUCET_AMOUNTS: Record<string, string> = {
+  XLM: "20",
+  tstAQUA: "1000000",
+  tstVELO: "10000",
+  tstUSDC: "1000",
+  tstEURC: "1000",
+};
+
+/**
+ * Display metadata per underlying token (SAC contract id -> info).
+ * tst-prefixed tokens are self-issued testnet stand-ins whose ORACLE PRICE is
+ * relayed from real mainnet Reflector data (scripts/price-relay.ps1) - except
+ * tstVELO, which has no real Reflector coverage and uses a simulated price
+ * (see docs/CHALLENGES_AND_DECISIONS.md).
+ */
+export const TOKEN_INFO: Record<string, { symbol: string; color: string; simulated?: boolean }> = {
+  [env.VITE_TOKEN_XLM]: { symbol: "XLM", color: "#7b68ee" },
+  [env.VITE_TOKEN_TSTAQUA]: { symbol: "tstAQUA", color: "#9f4ef5" },
+  [env.VITE_TOKEN_TSTVELO]: { symbol: "tstVELO", color: "#f5a623", simulated: true },
+  [env.VITE_TOKEN_TSTUSDC]: { symbol: "tstUSDC", color: "#2775ca" },
+  [env.VITE_TOKEN_TSTEURC]: { symbol: "tstEURC", color: "#1a9c6b" },
 };
 
 export const SHARE_DECIMALS = 7;

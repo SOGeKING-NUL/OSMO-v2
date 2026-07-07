@@ -1,19 +1,25 @@
 import { useCallback, useEffect, useState } from "react";
-import { PRICE_DECIMALS, SHARE_DECIMALS, TOKEN_INFO } from "./config";
+import { FAUCET_AMOUNTS, PRICE_DECIMALS, SHARE_DECIMALS, TOKEN_INFO } from "./config";
+import { dripTestTokens } from "./lib/faucet";
 import {
   AssetInfo,
   NavInfo,
+  PriceData,
+  addTrustlines,
   connectWallet,
+  fetchAssetPrices,
   fetchAssets,
   fetchBalances,
   fetchNav,
   fetchShareBalance,
   fetchTotalSupply,
   fmtUnits,
+  getMissingTrustlines,
   parseUnits,
   quoteMint,
   sendMint,
   sendRedeem,
+  toBig,
 } from "./lib/folio";
 
 const POLL_MS = 5000;
@@ -57,6 +63,7 @@ export default function App() {
   const [nav, setNav] = useState<NavInfo | null>(null);
   const [balances, setBalances] = useState<bigint[]>([]);
   const [supply, setSupply] = useState<bigint>(0n);
+  const [prices, setPrices] = useState<Record<string, PriceData | null>>({});
   const [wallet, setWallet] = useState<string>("");
   const [myShares, setMyShares] = useState<bigint>(0n);
   const [status, setStatus] = useState<string>("");
@@ -66,6 +73,7 @@ export default function App() {
   const [quote, setQuote] = useState<bigint[] | null>(null);
   const [redeemShares, setRedeemShares] = useState("");
   const [busy, setBusy] = useState(false);
+  const [missingTrustlines, setMissingTrustlines] = useState<{ code: string; issuer: string }[]>([]);
 
   const refresh = useCallback(async () => {
     try {
@@ -79,7 +87,10 @@ export default function App() {
       // a tripped oracle breaker (stale/divergent) fails nav() — surface it
       setNavError(String(e?.message ?? e));
     }
-  }, [wallet]);
+    if (assets.length) {
+      fetchAssetPrices(assets.map((a) => a.token)).then(setPrices);
+    }
+  }, [wallet, assets]);
 
   useEffect(() => {
     fetchAssets().then(setAssets).catch((e) => setStatus(String(e)));
@@ -93,10 +104,50 @@ export default function App() {
 
   async function onConnect() {
     try {
-      setWallet(await connectWallet());
+      const addr = await connectWallet();
+      setWallet(addr);
       setStatus("");
+      // classic assets (everything but XLM) need a trustline before this
+      // wallet can hold them - a fresh account almost certainly lacks these
+      setMissingTrustlines(await getMissingTrustlines(addr));
     } catch (e: any) {
       setStatus(`Wallet: ${e.message ?? e}`);
+    }
+  }
+
+  async function onAddTrustlines() {
+    if (!wallet || missingTrustlines.length === 0) return;
+    setBusy(true);
+    setStatus("Adding trustlines…");
+    try {
+      await addTrustlines(wallet, missingTrustlines);
+      setMissingTrustlines(await getMissingTrustlines(wallet));
+      setStatus("Trustlines added ✓");
+    } catch (e: any) {
+      setStatus(`Adding trustlines failed: ${e.message ?? e}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** One-click onboarding: trustlines (if needed) then the token drip. */
+  async function onFaucet() {
+    if (!wallet) return;
+    setBusy(true);
+    try {
+      const missing = await getMissingTrustlines(wallet);
+      if (missing.length > 0) {
+        setStatus("Adding trustlines…");
+        await addTrustlines(wallet, missing);
+        setMissingTrustlines([]);
+      }
+      setStatus("Requesting test tokens…");
+      await dripTestTokens(wallet);
+      setStatus("Test tokens received ✓ — refresh balances above may take a moment");
+    } catch (e: any) {
+      setStatus(`Faucet failed: ${e.message ?? e}`);
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -193,33 +244,72 @@ export default function App() {
           <thead>
             <tr>
               <th>Asset</th>
+              <th>Price</th>
               <th>Target</th>
               <th>Held by folio</th>
             </tr>
           </thead>
           <tbody>
-            {assets.map((a, i) => (
-              <tr key={a.token}>
-                <td>
-                  <span className="dot" style={{ background: TOKEN_INFO[a.token]?.color ?? "#888" }} />
-                  {tokenSymbol(a.token)}
-                </td>
-                <td>{(a.weight_bps / 100).toFixed(1)}%</td>
-                <td>{balances[i] !== undefined ? fmtUnits(balances[i], a.decimals, 2) : "—"}</td>
-              </tr>
-            ))}
+            {assets.map((a, i) => {
+              const pd = prices[a.token];
+              return (
+                <tr key={a.token}>
+                  <td>
+                    <span className="dot" style={{ background: TOKEN_INFO[a.token]?.color ?? "#888" }} />
+                    {tokenSymbol(a.token)}
+                    {TOKEN_INFO[a.token]?.simulated && (
+                      <span className="warn" title="No real oracle coverage - simulated price">
+                        {" "}(simulated)
+                      </span>
+                    )}
+                  </td>
+                  <td>{pd ? `$${fmtUnits(pd.price, PRICE_DECIMALS, 6)}` : "—"}</td>
+                  <td>{(a.weight_bps / 100).toFixed(1)}%</td>
+                  <td>{balances[i] !== undefined ? fmtUnits(balances[i], a.decimals, 2) : "—"}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </section>
+
+      {wallet && (
+        <section className="card faucet">
+          <h2>Testnet faucet</h2>
+          <p>
+            Free demo tokens, one click: {FAUCET_AMOUNTS.XLM} XLM, {FAUCET_AMOUNTS.tstAQUA} tstAQUA,{" "}
+            {FAUCET_AMOUNTS.tstVELO} tstVELO, {FAUCET_AMOUNTS.tstUSDC} tstUSDC,{" "}
+            {FAUCET_AMOUNTS.tstEURC} tstEURC. Sets up trustlines automatically if needed.
+          </p>
+          <button onClick={onFaucet} disabled={busy}>
+            Get test tokens
+          </button>
+        </section>
+      )}
 
       <section className="card">
         <h2>Your position</h2>
         <p>
           {wallet
             ? `${fmtUnits(myShares, SHARE_DECIMALS, 4)} SEF` +
-              (nav ? ` ≈ $${fmtUnits((myShares * nav.per_share) / 10n ** BigInt(SHARE_DECIMALS), PRICE_DECIMALS, 2)}` : "")
+              (nav
+                ? ` ≈ $${fmtUnits((toBig(myShares) * toBig(nav.per_share)) / 10n ** BigInt(SHARE_DECIMALS), PRICE_DECIMALS, 2)}`
+                : "")
             : "Connect a wallet to see your shares."}
         </p>
+
+        {wallet && missingTrustlines.length > 0 && (
+          <div className="trustline-banner">
+            <p>
+              This wallet hasn't trusted {missingTrustlines.map((a) => a.code).join(", ")} yet —
+              required once before minting (a base Stellar ledger rule for non-native assets, not
+              specific to this app). The faucet above sets this up automatically, or do it alone:
+            </p>
+            <button onClick={onAddTrustlines} disabled={busy}>
+              Add trustlines only
+            </button>
+          </div>
+        )}
 
         <div className="actions">
           <div>
@@ -231,7 +321,7 @@ export default function App() {
                 setMintShares(e.target.value);
                 setQuote(null);
               }}
-              disabled={busy}
+              disabled={busy || missingTrustlines.length > 0}
             />
             {quote ? (
               <>
@@ -247,7 +337,10 @@ export default function App() {
                 </button>
               </>
             ) : (
-              <button onClick={onQuote} disabled={busy || !wallet || !mintShares}>
+              <button
+                onClick={onQuote}
+                disabled={busy || !wallet || !mintShares || missingTrustlines.length > 0}
+              >
                 Quote deposits
               </button>
             )}
