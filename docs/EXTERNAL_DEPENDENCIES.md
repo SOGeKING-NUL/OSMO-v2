@@ -23,22 +23,26 @@ Legend: ✅ ready / no action · 🔧 install or wire up (routine) · 🚧 **blo
 | 12 | Horizon + Soroban RPC endpoints | Infra | ✅ | Free (public) | Public endpoints fine; self-host only if rate-limited. |
 | 13 | Deploy key management | Security | 🔧 | — | Multisig for mainnet admin (ADR-007). Decide signer set before mainnet. |
 
-## Phase 2 — cross-chain
+## Phase 2 — cross-chain — **shelved 2026-07-08 (Challenge 5); items below not being pursued**
+
+Axelar has essentially no wrapped-ETH/BTC assets or liquidity on Stellar (mainnet or testnet —
+Challenge 4). Kept for reference only; revisit if that changes.
 
 | # | Dependency | Type | Status | Notes |
 |---|---|---|---|---|
-| 14 | Axelar ITS contracts (Gateway, TokenManager, GasService, ITS) | Bridge | 🔧 | Record addresses on Stellar + source chains; use as shipped (ADR-008). |
-| 15 | EVM-side test setup (Ethereum testnet + funds) | Testing | 🔧 | To test inbound ETH→Stellar flow. |
-| 16 | Allbridge Core contracts/API | Bridge | 🔧 | Native USDC inflow. |
-| 17 | Soroswap API key + SDK | Swap | 🔧 | Single-asset deposit routing; `out_min` per leg. |
+| 14 | Axelar ITS contracts (Gateway, TokenManager, GasService, ITS) | Bridge | ⏸️ shelved | Live on testnet, but ~no tokens registered — not being wired up now. |
+| 15 | EVM-side test setup (Ethereum testnet + funds) | Testing | ⏸️ shelved | Only needed if 14 resumes. |
+| 16 | Allbridge Core contracts/API | Bridge | ⏸️ shelved | Native USDC inflow — deprioritized alongside the rest of Phase 2. |
+| 17 | Soroswap API key + SDK | Swap | ✅ resolved | Not actually needed — we call the Router contract directly (no API key), already live and in use by `mint_single_asset`. |
 
-## Phase 3 — regulated assets
+## Phase 3 — RWA — **re-scoped 2026-07-08 (Challenge 5): synthetic tokens active, BENJI/DTCC future**
 
 | # | Dependency | Type | Status | Notes |
 |---|---|---|---|---|
-| 18 | Franklin Templeton institutional KYC / allowlist (BENJI) **or** MoonPay Trade institutional account | Partnership | 📅 | Long lead. No permissionless path to BENJI. |
-| 19 | Securities-law counsel (fund-of-funds structuring / geofencing) | Legal | 📅 | Required before any regulated-asset Folio launches. |
-| 20 | DTCC tokenized-asset availability on Stellar | External | 📅 | H1 2027 per DTCC timeline. Out of our control. |
+| 21 | External synthetic-RWA-token availability (transferable SEP-41? which oracle? testnet?) | Partnership/External | 🚧 | New active blocker — see IMPLEMENTATION_PLAN.md §3.5. A contact is reportedly building this; needs confirmation before we build against it. |
+| 18 | Franklin Templeton institutional KYC / allowlist (BENJI) **or** MoonPay Trade institutional account | Partnership | 📅 future goal, not active | Long lead. No permissionless path to BENJI. Architecture (AllowList, ADR-002) already supports this whenever the partnership exists. |
+| 19 | Securities-law counsel (fund-of-funds structuring / geofencing) | Legal | 📅 future goal, not active | Required before any regulated-asset Folio launches. |
+| 20 | DTCC tokenized-asset availability on Stellar | External | 📅 future goal, not active | H1 2027 per DTCC timeline. Out of our control. |
 
 ---
 

@@ -354,3 +354,10 @@ NAV/share held at $1.00.
 - **Deferred:** browser click-through of the deposit flow (contract path proven live via CLI;
   UI wiring built + type-checked but not manually driven in a browser). `#[contractevent]`
   migration (cosmetic warnings persist).
+
+### [2026-07-08] Browser verification complete — all app flows confirmed by hand
+Clears the "browser click-through pending" deferrals accumulated across the prior entries
+(faucet, trustline banner, mint/redeem, and the single-asset XLM deposit + pools page). All
+confirmed working in-browser with Freighter on testnet. Only remaining non-cosmetic deferral
+in Phase 1 is PasskeyKit + Launchtube (still gated on the Launchtube token). Phase 1 app is
+functionally complete for the cohort beta.

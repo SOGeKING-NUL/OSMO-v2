@@ -19,8 +19,16 @@ The first coding target — literally the next thing we build — is exactly wha
 > the contract that mints the DTF (Folio share) token against on-chain collateral
 > (SAC-wrapped assets: XLM, USDC, EURC, and friends).
 
-Cross-chain (Axelar) and BENJI/DTCC are Phase 2 and 3. We design so they *slot in*
-without a rewrite, but we do not build them now.
+**Strategic update (2026-07-08 — see Challenge 5 in `CHALLENGES_AND_DECISIONS.md`):**
+cross-chain (Axelar wrapped assets) and BENJI/DTCC are both **shelved** as near-term product
+goals — not because the engineering is wrong, but because both are blocked by things outside
+our control (no wrapped-ETH liquidity/tokens on Stellar; BENJI/DTCC require issuer allowlisting
+via partnership). **Active scope is now: native DTFs (shipped) + synthetic RWA DTFs (new,
+§3.5)** — oracle-tracked stock/ETF-mimicking tokens that are ordinary permissionless SEP-41,
+so they need none of the allowlisting or bridge liquidity the regulated path needs. BENJI/DTCC
+remain a **future consolidation goal**: once real allowlisting partnerships exist, this same
+Folio architecture already supports holding them (that was the point of ADR-002's AllowList
+design) — we just don't build toward them actively today.
 
 **Before we write code, three external things must be confirmed** (see
 [`EXTERNAL_DEPENDENCIES.md`](./EXTERNAL_DEPENDENCIES.md), items marked 🚧):
@@ -159,16 +167,22 @@ on-chain collateral" contract you asked for.
 **Explicitly cut from Phase 1:** swaps/single-asset deposit, rebalancing, cross-chain,
 BENJI, fees, governance. Roadmap slides, not code.
 
-### Phase 2 — Cross-chain baskets (months 1–6)
+### Phase 2 — Cross-chain baskets (**shelved 2026-07-08** — see Challenge 5)
 
+**Status: not an active product goal.** Research complete (§2.5), a real testnet mechanism
+proof remains a *possible* future demo, but it is not being built toward as a shipped product —
+Axelar has essentially zero wrapped-ETH assets or liquidity on Stellar (mainnet or testnet;
+Challenge 4), so a real cross-chain ETH/BTC basket isn't credible today regardless of how good
+our contract code is. **What stays fully in scope:** `mint_single_asset` (§2.4) itself — it's
+native, chain-agnostic infrastructure already shipped and used for the XLM→basket deposit; it
+simply isn't being extended to cross-chain assets right now.
+
+Original plan, kept for reference (not being pursued):
 - **Axelar ITS** for wETH/wBTC/wSOL (lock-and-mint → axl* tokens on Stellar). Use the
   shipped Gateway / TokenManager / GasService / InterchainTokenService — **no custom bridge**.
 - **Allbridge Core** for native USDC (liquidity pools, no wrapping).
-- **Single-asset deposit via Soroswap** — see §2.4 below for the verified, concrete design.
 - Cross-chain Folios are a **separate, labeled** product surface (bridge risk stacks on
   contract risk); native-only Folios stay the default.
-- New contract-side surface: an inbound hook the ITS TokenManager calls when wrapped tokens
-  land at the Folio, which then updates the basket and mints shares to the user.
 
 ### 2.4 Single-asset deposit — verified design (2026-07-06)
 
@@ -285,12 +299,140 @@ mint_single_asset(user, deposit_token, deposit_amount, shares_out, max_deposit_a
   role as today's `quoteMint` simulate-first flow) so the user sees the real expected total
   cost before signing.
 
-### Phase 3 — Regulated-asset baskets (2027)
+### 2.5 Cross-chain DTFs via Axelar ITS — research (2026-07-08), **shelved as a product goal**
 
+> **This section is kept as a reference design, not an active roadmap item.** The research below
+> (interfaces, mechanism, phasing) is real and correct — the blocker isn't the plan, it's that
+> Axelar has no wrapped-ETH/BTC assets or liquidity on Stellar today (Challenge 4/5). Revisit if
+> that changes; until then, effort goes to native + synthetic RWA DTFs (§3.5) instead.
+
+**Goal:** let a Folio hold assets that originate on other chains (wETH/wBTC/wSOL), which arrive
+on Stellar as Axelar-wrapped tokens (`axlETH` etc.), and let a user on an EVM chain go from
+"I have ETH" to "I hold SEF shares on Stellar." The Folio share token always lives on Stellar
+(§5.3 of the PRD).
+
+#### Verified interfaces & facts (checked against Axelar's Soroban repos, not assumed)
+
+- **Stellar ITS runs in "Hub mode"** — every cross-chain message routes through the ITS Hub on
+  the Axelar network, never chain-to-chain directly. ([Stellar ITS docs](https://docs.axelar.dev/dev/send-tokens/stellar/intro/))
+- **Sending a token + message (source → Stellar):** on the source chain, call ITS
+  `callContractWithInterchainToken(tokenId, destChain, destAddress, amount, data, gas)` (the
+  token-only variant is `interchainTransfer`). ([ITS executable](https://docs.axelar.dev/dev/send-tokens/interchain-tokens/interchain-token-executable/))
+- **Receiving on Soroban — the key primitive.** A destination contract implements the ITS
+  executable trait; when the wrapped token lands, ITS transfers it to the contract and calls:
+  ```rust
+  fn __authorized_execute_with_token(
+      env: &Env, source_chain: String, message_id: String, source_address: Bytes,
+      payload: Bytes, token_id: BytesN<32>, token_address: Address, amount: i128,
+  ) -> Result<(), Self::Error>;
+  ```
+  The caller is **pre-verified as the ITS contract** before this runs — we don't hand-roll
+  source validation (that removal is exactly what caused the Secret Network $4.67M drain; PRD §5.1).
+- **Plain GMP primitives** (for the return path / non-token messages): Gateway `call_contract`,
+  GasService `pay_gas`, and the executable `execute(source_chain, message_id, source_address, payload)`.
+- **Testnet ITS address:** `CCXT3EAQ7GPQTJWENU62SIFBQ3D4JMNQSB77KRPTGBJ7ZWBYESZQBZRK` (from
+  Axelar's `stellar-its-example`). Gateway / GasService / per-token TokenManager addresses:
+  confirm from `axelarnetwork/axelar-contract-deployments` at build time — **do not hardcode
+  from memory** (they get redeployed).
+
+#### The one hard problem, named up front: destination-execution failure
+
+When `__authorized_execute_with_token` runs, the wrapped tokens are **already minted to our
+contract**. If our "swap into the basket and mint shares" logic then reverts (illiquid axl*
+pool, slippage, paused), Axelar can retry the message but the tokens don't un-mint. A naive
+atomic design risks either a stuck message or tokens trapped. This is *the* design driver.
+
+**Decision — decouple bridging from minting for the first version (ADR-017, to be recorded):**
+- **v1 (robust, boring):** the user bridges the raw token to **their own Stellar address** via
+  plain `interchainTransfer` (no executable callback, no custom code on our side at all). Once
+  it lands, they call the existing `mint_single_asset` (§2.4) on Stellar — which already
+  swaps one asset into the whole basket and mints. Bridge failure and mint failure are now
+  *independent*: a failed mint just leaves the user holding axlETH in their own wallet, which
+  they can retry or withdraw. Zero stuck-funds risk, and it reuses code that's already live.
+- **v2 (one-click, later):** implement `__authorized_execute_with_token` on a `CrossChainFolio`
+  so the whole "ETH on Ethereum → SEF on Stellar" flow is one action. Only build this after
+  designing the failure path: on inner failure, credit the recipient a claim on the raw
+  `token_address`/`amount` (store it, expose a `claim()`), so the executable call still
+  succeeds (tokens delivered to a claim ledger) and never traps. Never let the executable
+  revert after tokens are in hand.
+
+#### Contract-side work
+
+- **New `CrossChainFolio`** (separate contract, ADR-002/006 style), or the existing Folio with
+  the axl* tokens as basket assets — but **segregated from native Folios in the UI**, explicitly
+  risk-labeled (PRD §5.4: axlETH is only as sound as Axelar's Ethereum escrow).
+- v1 needs **no new Folio code** — it's `mint_single_asset` with an axl* deposit token, plus a
+  seeded `axlETH/XLM` (etc.) Soroswap pool so the swap legs have liquidity. (Same seeding move
+  as §2.4; note wrapped-asset DEX depth on Stellar is even thinner — start with one wrapped
+  asset + XLM, small.)
+- v2 adds the executable trait impl + a claim ledger for failed inner execution.
+- **Return path (redeem cross-chain):** `redeem` on Stellar gives the user axl* tokens; a thin
+  helper (or the user directly) calls ITS `interchainTransfer` back to the source chain, where
+  Axelar burns the wrapped token and releases native ETH. Outbound is inherently multi-tx and
+  needs source-chain gas — fine, documented, not magical.
+
+#### Phasing
+
+- **2a — inbound, decoupled:** bridge axlETH to user's Stellar wallet → existing
+  `mint_single_asset`. Seed the axlETH/XLM pool. Frontend flow that chains the two steps with
+  clear status. *Testable end-to-end on testnet.*
+- **2b — outbound redeem:** redeem → `interchainTransfer` back to Sepolia.
+- **2c — Allbridge Core** for *native* USDC (liquidity-pool model, no wrapping — real Circle
+  USDC arrives, relayer auto-creates trustlines). Separate integration, simpler risk story.
+- **2d — v2 one-click** (`__authorized_execute_with_token` + claim ledger) once 2a is proven.
+
+#### External dependencies (flag before coding — heavier than Phase 1)
+
+- An **EVM testnet** (Sepolia) with test ETH, plus the source-chain ITS deployment.
+- **Axelar testnet GMP** actually relaying (validator attestation) — an external service we
+  don't control; testing latency is minutes, not the ~5s we're used to on Stellar.
+- **Gas on both sides** (source-chain gas via GasService, Stellar fees).
+- Confirmed current Axelar Stellar-testnet addresses (Gateway/GasService/ITS) from the
+  deployments repo.
+- axl* token must be **registered/linked in ITS** for the route to exist (per-token TokenManager).
+
+#### Risks (carried from PRD §5, now with the concrete mechanism)
+
+- **Bridge risk stacking** — segregated, labeled, opt-in; audited Axelar infra used unmodified.
+- **Wrapped-asset liquidity on Stellar** — thinnest yet; single-asset mint routes through it,
+  so slippage bounds (`min_shares_out`) matter more. Start tiny.
+- **Destination-execution failure** — addressed by the decoupled v1 and the claim-ledger v2 above.
+- **Relayer/liveness** — a stuck message is retryable but not instant; UX must show "bridging…"
+  honestly rather than imply Stellar-speed finality.
+
+### Phase 3 — RWA baskets: synthetic now, regulated later (re-scoped 2026-07-08)
+
+**3.5 Synthetic RWA DTFs — new active goal.** Stellar is getting RWA-heavy (BENJI, incoming
+DTCC assets) but those specific tokens are allowlist-gated (Challenge 5) — the *category* is
+right, the *specific tokens* aren't usable yet. The workaround: **oracle-tracked synthetic
+tokens** that mimic real-world stock/ETF prices (e.g. a synthetic "TSLA" or "AMZN" token,
+collateral-backed, minted/burned against an oracle price by a vault contract) are, once minted,
+**ordinary permissionless SEP-41 tokens** — no allowlist, no issuer partnership, holdable and
+swappable exactly like AQUA or XLM. This is the same category ambition (RWA exposure on
+Stellar) achieved through a token design that doesn't hit the allowlist wall.
+
+- Basket design: same Folio primitive, holding a mix of synthetic RWA tokens (e.g. a "Mag 7
+  mimic" basket) — `mint`/`redeem`/`mint_single_asset` all already work unmodified, since they
+  only require SEP-41 compliance, not any particular token's provenance.
+- **External dependency, not yet resolved:** the actual synthetic tokens don't exist yet in our
+  system. A contact (outside this codebase) is reportedly building oracle-tracked RWA synthetics
+  on Stellar — if/when that ships (or we build our own minimal version), confirm: (a) genuinely
+  transferable SEP-41, not just an internal vault position (see the "can you `transfer()` this"
+  question already raised); (b) which oracle prices it (Reflector confirmed Stellar-compatible;
+  **Pyth does not support Stellar/Soroban** — rule that out explicitly if mentioned); (c) testnet
+  availability for us to build/test against, same as every other asset in this project.
+- Collateral/solvency risk here belongs to whoever runs the synthetic's vault, not to the DTF —
+  same separation of concerns as any other basket asset.
+
+**Regulated RWA (BENJI/DTCC) — future consolidation goal, not active build:**
 - **ReservePool** holding allowlisted BENJI; yield accrues to Folio NAV via daily dividend airdrops.
-- Per-asset **transfer eligibility** enforced with the OZ AllowList extension (designed for from ADR-002 onward).
-- Gated on: FT/MoonPay institutional KYC, securities-law structuring (fund-of-funds), and
-  DTCC asset availability. Legal-and-partnership track, kept out of the critical code path.
+- Per-asset **transfer eligibility** already designed for via the OZ AllowList extension (ADR-002) —
+  the architecture doesn't need new work to support this later, it was built with this in mind.
+- Gated on: FT/DTCC allowlisting our contract address (a partnership, not an engineering task),
+  securities-law structuring (fund-of-funds), and DTCC asset availability (H1 2027 per their
+  timeline). **Aspiration:** once that partnership exists, become the DTF/portfolio layer that
+  BENJI/DTCC-tokenized assets settle into — but this runs on their timeline, not ours, and stays
+  out of the active build until an actual allowlisting conversation starts.
 
 ---
 

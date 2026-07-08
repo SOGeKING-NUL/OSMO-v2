@@ -152,3 +152,80 @@ KYC. That was already in the PRD before this idea came up and remains the plan.
 
 **Status:** intentionally not pursued as part of Nebula DTF. Revisit as an entirely separate
 initiative if there's appetite for the capital/compliance lift it requires.
+
+---
+
+## Challenge 4 — The wrapped Ethereum assets the cross-chain thesis needs don't exist on Stellar yet
+
+**The problem:** the whole cross-chain goal ("hold Ethereum assets as a DTF on Stellar") assumes
+wrapped assets like `axlETH`/`axlWBTC` are available on Stellar. Checked Axelar's own deployment
+config (`axelar-contract-deployments`, 2026-07-08) — they are **not**:
+- **Stellar testnet** (`stellar-2026-q1-2`): the *only* ITS-registered token is `AXE` (an internal
+  load-test token). No wrapped ETH/BTC of any kind; `AXE` has no Soroswap pool.
+- **Stellar mainnet**: only `HBT` and `AXE` registered via ITS. Still zero wrapped ETH/BTC.
+- Soroswap mainnet total TVL ≈ $1.2M across *all* pools — even if wrapped ETH existed, no depth.
+
+The Axelar infra itself is live on Stellar testnet (ITS `CC7LAC4S7KAPIM26WKWFSOXWLNLSG7EXTC2EVY2H2UPKSTX3Z2A7M5YP`,
+Gateway `CB2JYOOZPHO43R57TC5PXV22QICKIDC5NKRF62BZG2J6JYFUIQPIAYY3`, GasService
+`CCLZOCGHHC6F6JCZHEUP53LDQHRBPPCNRYXOVFZFS3O63OGRC47CKCGV`) — the *rails* work, the *cargo* isn't there.
+
+**Why it matters:** this is the tstAQUA situation one layer up — the assets our thesis depends on
+have no Stellar presence, so (as with the native basket) a testnet demo requires us to create our
+own stand-in, this time by deploying a real interchain token through Axelar's actual ITS.
+
+**Decision (Model A vs Model B, per the liquidity question):**
+- **Model A — bridge a real-ITS token, deposit proportionally (no pool/liquidity needed).** The
+  honest core path. Works on testnet once we deploy our own ITS token; the realistic mainnet path
+  whenever wrapped ETH eventually lands on Stellar. Zero dependence on Stellar DEX liquidity.
+- **Model B — deposit XLM, auto-swap via Soroswap (needs a pool).** Achievable *on testnet* only
+  because we seed our own pool (same move as the tst tokens + `mint_single_asset`, already proven).
+  **Not** mainnet-credible for ETH assets today (no tokens, ~$1.2M total DEX depth).
+- **Chosen:** build Model A as the truthful core; offer Model B on testnet as a "frictionless once
+  liquidity exists" demo, explicitly labeled as depending on seeded liquidity. Do not imply mainnet
+  ETH-basket liquidity that doesn't exist.
+
+**Status:** research complete, direction chosen; cross-chain build not yet started (plan in
+IMPLEMENTATION_PLAN.md §2.5, to be updated to lead with Model A).
+
+---
+
+## Challenge 5 — Strategic pivot: both cross-chain and regulated-RWA paths hit the same wall
+
+**The pattern, once named, applies to both Phase 2 and Phase 3:** every path we researched for
+"hold assets that aren't native to Stellar" ends at either (a) no real liquidity, or (b) an
+allowlist we don't control:
+
+- **Cross-chain (Axelar wrapped ETH/BTC):** Challenge 4 found essentially zero wrapped-ETH
+  tokens or liquidity on Stellar, mainnet *or* testnet. Not a contract-design problem — the
+  assets and markets simply aren't there yet.
+- **Regulated RWA (BENJI/DTCC):** both are SEP-41 tokens with `AUTH_REQUIRED` — the issuer must
+  explicitly `set_authorized` our contract's address before it can hold either. That's a
+  partnership/legal relationship (FT's transfer agent, DTCC's compliance process), not something
+  achievable by writing better Soroban code. DTCC's own assets aren't even live yet (targeted
+  H1 2027).
+
+**Decision (2026-07-08):** shelve both as active product goals. **Active scope narrows to:**
+1. **Native DTFs** (shipped — XLM/AQUA/VELO/USDC/EURC basket, proportional + single-asset mint).
+2. **Synthetic RWA DTFs** (new) — oracle-tracked tokens that mimic real-world stock/ETF prices
+   (e.g. a synthetic TSLA/AMZN), which are *ordinary permissionless SEP-41 tokens* once minted —
+   no allowlist, no bridge, no partnership needed to hold or swap them. Achieves the same
+   "RWA exposure on Stellar" ambition through a token design that never hits the allowlist wall.
+   A contact outside this codebase is reportedly building exactly this; needs confirmation it's
+   genuinely transferable (not just an internal vault position) and which oracle it uses before
+   we build against it (Pyth is confirmed **not** available on Stellar/Soroban — rule it out if
+   mentioned).
+
+**Kept as an explicit future goal, not shelved permanently:** once FT/DTCC-style allowlisting
+partnerships become real, this same Folio architecture already supports holding those assets —
+the OZ AllowList extension was designed in from ADR-002 specifically for this. The aspiration
+(consolidate with BENJI/DTCC and become their on-chain DTF/portfolio layer) stays on the roadmap
+as a Phase-3-later goal; it's just not what we build toward today.
+
+**Why this is the right call, not giving up:** all three blockers (Axelar liquidity, FT
+allowlisting, DTCC timeline) are things **no amount of our own engineering effort moves**.
+Continuing to build contract logic against them would be solving the wrong problem. Synthetic
+RWA tokens convert "wait for a partnership" into "build with tokens that don't need one" —
+same category ambition, achievable now.
+
+**Status:** direction decided; synthetic-RWA-token availability is the open next question
+(external, not yet resourced — see IMPLEMENTATION_PLAN.md §3.5).

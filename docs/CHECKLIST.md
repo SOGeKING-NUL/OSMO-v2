@@ -53,7 +53,7 @@ Tick an item only when its code exists **and** its test passes. Full context in
 - [ ] PasskeyKit onboarding (Face-ID wallet) — 🚧 blocked on Launchtube token (Freighter shipped as interim wallet, ADR-013)
 - [ ] Launchtube fee sponsorship wired — 🚧 blocked on Launchtube token
 - [x] Folio page: composition donut, live NAV (5s poll), user shares & position value (`app/`, builds clean, live-testnet read smoke test passing)
-- [x] Mint/redeem flows with asset-ratio helper (simulate-first quote shows exact deposits; 0.5% buffered `max_deposits`) — ⏳ browser-manual test with funded Freighter pending (Stage 1.6 beta)
+- [x] Mint/redeem flows with asset-ratio helper (simulate-first quote shows exact deposits; 0.5% buffered `max_deposits`) — browser-verified with Freighter 2026-07-08
 - [x] Oracle prices are real, not arbitrary (ADR-014, 2026-07-06): off-chain relay reads live mainnet Reflector prices (XLM/AQUA/EURC) into our testnet `MockPriceFeed`; USDC fixed at oracle's own $1.00 base; only VELO (no Reflector coverage, confirmed) stays a labeled simulated placeholder. DIA dropped as a second source (confirmed unnecessary — Reflector alone is free, sufficient); router's dual-feed capability stays built but unused.
 
 ### Stage 1.6 — Testnet beta
@@ -71,16 +71,22 @@ Tick an item only when its code exists **and** its test passes. Full context in
 - [ ] Dry run + pitch deck + backup demo video
 - [ ] Live judge mint on mainnet via passkey in <60s
 
-## Phase 2 — Cross-chain (months 1–6)
-- [ ] Allbridge Core native-USDC inflow
-- [ ] Axelar ITS inbound hook (TokenManager → Folio → mint shares)
-- [ ] axlETH/axlBTC/axlSOL Folio (segregated, risk-labeled UI)
-- [x] **Soroswap single-asset deposit** (`mint_single_asset`, ADR-016) — pulled early into Folio v2; deposit XLM → basket via real seeded Soroswap pools; verified live 2026-07-08 (deposit 20 XLM → 4 swaps → 3.86 SEF). App: deposit card + live pools reserves page. ⏳ browser click-through pending.
+## Phase 2 — Cross-chain — **shelved 2026-07-08, see Challenge 5**
+- [x] **Soroswap single-asset deposit** (`mint_single_asset`, ADR-016) — stays fully active, this is native infra. Pulled early into Folio v2; deposit XLM → basket via real seeded Soroswap pools; verified live 2026-07-08 (deposit 20 XLM → 4 swaps → 3.86 SEF). App: deposit card + live pools reserves page, both browser-verified with Freighter.
+- [~] Everything below: **not being pursued** — Axelar has ~zero wrapped-ETH assets/liquidity on Stellar mainnet *or* testnet (Challenge 4). Kept as a reference plan only; revisit if that changes.
+  - Axelar ITS inbound/outbound bridging (2a-2d), Allbridge Core, axl* segregated Folio
 - [ ] SCF Build Award submitted; audit slot secured
 
-## Phase 3 — Regulated assets (2027)
-- [ ] ReservePool (allowlisted BENJI custody)
-- [ ] OZ AllowList per-asset transfer eligibility
-- [ ] FT/MoonPay institutional KYC + legal structuring complete
-- [ ] First DTCC-asset Folio design (permissioned)
+## Phase 3 — RWA baskets (re-scoped 2026-07-08 — see Challenge 5)
+
+### Active: synthetic RWA DTFs (new goal, plan in IMPLEMENTATION_PLAN.md §3.5)
+- [ ] Confirm external synthetic-RWA-token project status (transferable SEP-41? which oracle — not Pyth, unsupported on Stellar; testnet availability?)
+- [ ] If none available yet, evaluate building a minimal synthetic token (oracle-priced vault, mint/burn, plain SEP-41 output) ourselves
+- [ ] Basket design + bootstrap once a real synthetic token exists to test against (same Folio primitive, no contract changes expected)
+
+### Future consolidation goal, not active build: BENJI / DTCC
+- [ ] ReservePool (allowlisted BENJI custody) — blocked on FT allowlisting our contract address (partnership, not engineering)
+- [ ] OZ AllowList per-asset transfer eligibility — architecture already supports this (ADR-002); no new design work needed until a partnership exists
+- [ ] FT/MoonPay institutional KYC + legal structuring — legal track, runs independent of code
+- [ ] First DTCC-asset Folio design (permissioned) — DTCC assets targeted H1 2027 per their own timeline; revisit then
 ```
