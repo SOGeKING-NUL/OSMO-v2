@@ -952,6 +952,7 @@ version = "0.1.0"
 dependencies = [
  "nebula-interfaces",
  "nebula-mock-price-feed",
+ "nebula-mock-soroswap-router",
  "nebula-oracle-router",
  "soroban-sdk",
  "stellar-tokens",
@@ -966,6 +967,14 @@ dependencies = [
 
 [[package]]
 name = "nebula-mock-price-feed"
+version = "0.1.0"
+dependencies = [
+ "nebula-interfaces",
+ "soroban-sdk",
+]
+
+[[package]]
+name = "nebula-mock-soroswap-router"
 version = "0.1.0"
 dependencies = [
  "nebula-interfaces",
