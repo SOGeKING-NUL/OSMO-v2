@@ -1,4 +1,4 @@
-# Nebula DTF — Decentralized Token Folios on Stellar
+# OSMO DTF — Decentralized Token Folios on Stellar
 
 One token that holds a basket of Stellar assets. Mint against proportional
 deposits, redeem pro-rata anytime, live NAV from SEP-40 oracles (Reflector).
