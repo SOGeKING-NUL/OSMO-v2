@@ -72,7 +72,7 @@ Tick an item only when its code exists **and** its test passes. Full context in
 - [ ] Live judge mint on mainnet via passkey in <60s
 
 ## Phase 2 — Cross-chain — **shelved 2026-07-08, see Challenge 5**
-- [x] **Soroswap single-asset deposit** (`mint_single_asset`, ADR-016) — stays fully active, this is native infra. Pulled early into Folio v2; deposit XLM → basket via real seeded Soroswap pools; verified live 2026-07-08 (deposit 20 XLM → 4 swaps → 3.86 SEF). App: deposit card + live pools reserves page, both browser-verified with Freighter.
+- [x] **Aquarius single-asset deposit integration** (`mint_single_asset`) — contract now calls Aquarius `swap_chained` with admin-configured XLM -> basket-token routes. Needs live Aquarius pool-index hashes in `.stellar/nebula-testnet.json` before redeploy verification.
 - [~] Everything below: **not being pursued** — Axelar has ~zero wrapped-ETH assets/liquidity on Stellar mainnet *or* testnet (Challenge 4). Kept as a reference plan only; revisit if that changes.
   - Axelar ITS inbound/outbound bridging (2a-2d), Allbridge Core, axl* segregated Folio
 - [ ] SCF Build Award submitted; audit slot secured

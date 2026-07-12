@@ -37,26 +37,31 @@ Explorer pattern: `https://stellar.expert/explorer/testnet/contract/<ID>`
 `CALI2BYU2JE6WVRUFYTS6MSBNEHGJ35P4AVCZYF3B6QOE3QKOB2PLE6M` — "Stellar Pubnet Pulse Oracle",
 queried read-only from `scripts/price-relay.ps1`. See ADR-014 in `DECISION_LOG.md`.
 
-## Soroswap liquidity pools (testnet, seeded by us — see IMPLEMENTATION_PLAN.md §2.4)
+## Aquarius AMM routes (testnet)
 
-Real, unmodified Soroswap contracts — we only supplied the liquidity, seeded via
-`scripts/seed-pools.ps1`. Viewable live at
-[testnet.soroswap.finance/pools](https://testnet.soroswap.finance/pools).
+OSMO now uses the Aquarius AMM entry contract for `mint_single_asset`.
 
-| | Router / Factory |
+| Contract | Address |
 |---|---|
-| Soroswap Router (testnet) | [`CCJUD55AG6W5HAI5LRVNKAE5WDP5XGZBUDS5WNTIVDU7O264UZZE7BRD`](https://stellar.expert/explorer/testnet/contract/CCJUD55AG6W5HAI5LRVNKAE5WDP5XGZBUDS5WNTIVDU7O264UZZE7BRD) |
-| Soroswap Factory (testnet) | [`CDP3HMUH6SMS3S7NPGNDJLULCOXXEPSHY4JKUKMBNQMATHDHWXRRJTBY`](https://stellar.expert/explorer/testnet/contract/CDP3HMUH6SMS3S7NPGNDJLULCOXXEPSHY4JKUKMBNQMATHDHWXRRJTBY) |
+| Aquarius AMM entry (testnet) | [`CBQDHNBFBZYE4MKPWBSJOPIYLW4SFSXAXUTSXJN76GNKYVYPCKWC6QUK`](https://stellar.expert/explorer/testnet/contract/CBQDHNBFBZYE4MKPWBSJOPIYLW4SFSXAXUTSXJN76GNKYVYPCKWC6QUK) |
 
-| Pair (hub is always XLM) | Pool address | Seeded (7-dec units) |
-|---|---|---|
-| XLM / tstUSDC | [`CAO4ISEQ5PO3TCXOTDYI3OMZVE3OKNFDJUKWQ43PR4P36XSW5KHMY5G3`](https://stellar.expert/explorer/testnet/contract/CAO4ISEQ5PO3TCXOTDYI3OMZVE3OKNFDJUKWQ43PR4P36XSW5KHMY5G3) | 512 XLM / 100 tstUSDC |
-| XLM / tstAQUA | [`CCC3VMBMHZDKCMIMUP6R4F5S5BFLU3KMEVESHAVPGEQSVKOE7VEUSWGA`](https://stellar.expert/explorer/testnet/contract/CCC3VMBMHZDKCMIMUP6R4F5S5BFLU3KMEVESHAVPGEQSVKOE7VEUSWGA) | ~517 XLM / ~265,524 tstAQUA |
-| XLM / tstVELO | [`CBJDDMLEODNQ3T74C6JD33WC4I2LO2ZNY6T2SA3AWRV36S37FP2MPHDX`](https://stellar.expert/explorer/testnet/contract/CBJDDMLEODNQ3T74C6JD33WC4I2LO2ZNY6T2SA3AWRV36S37FP2MPHDX) | ~517 XLM / 5,000 tstVELO |
-| XLM / tstEURC | [`CDZCWDK7MI6QH3XLHIEDG3UXNGPCFODCXEPQWKOP7E6L4OI6KB5TYVBD`](https://stellar.expert/explorer/testnet/contract/CDZCWDK7MI6QH3XLHIEDG3UXNGPCFODCXEPQWKOP7E6L4OI6KB5TYVBD) | ~517 XLM / ~87.6 tstEURC |
+The folio stores one Aquarius route for each XLM -> basket-token leg via
+`set_aquarius_route(token_in, token_out, route)`. Route entries use Aquarius'
+public `swap_chained` shape: `(pool_tokens, pool_index, token_out)`.
 
-Each pool was sized to ~$100 per leg at the live relayed price at seeding time. Re-run
-`scripts/seed-pools.ps1` anytime — it's idempotent (skips any pair that already has reserves).
+Required local config keys in `.stellar/nebula-testnet.json`:
+
+| Pair | Config key |
+|---|---|
+| XLM / tstAQUA | `aquarius_pool_tstaqua_xlm` |
+| XLM / tstVELO | `aquarius_pool_tstvelo_xlm` |
+| XLM / tstUSDC | `aquarius_pool_tstusdc_xlm` |
+| XLM / tstEURC | `aquarius_pool_tsteurc_xlm` |
+
+After filling those pool-index hashes from Aquarius pool/path discovery, run
+`scripts/seed-pools.ps1` to verify reserves are readable, then
+`scripts/deploy-folio-v2.ps1` to wire the Aquarius router and routes into a
+fresh folio.
 
 ---
 

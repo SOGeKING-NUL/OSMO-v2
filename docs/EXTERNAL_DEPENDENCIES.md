@@ -33,7 +33,7 @@ Challenge 4). Kept for reference only; revisit if that changes.
 | 14 | Axelar ITS contracts (Gateway, TokenManager, GasService, ITS) | Bridge | ⏸️ shelved | Live on testnet, but ~no tokens registered — not being wired up now. |
 | 15 | EVM-side test setup (Ethereum testnet + funds) | Testing | ⏸️ shelved | Only needed if 14 resumes. |
 | 16 | Allbridge Core contracts/API | Bridge | ⏸️ shelved | Native USDC inflow — deprioritized alongside the rest of Phase 2. |
-| 17 | Soroswap API key + SDK | Swap | ✅ resolved | Not actually needed — we call the Router contract directly (no API key), already live and in use by `mint_single_asset`. |
+| 17 | Aquarius AMM routes/pool-index hashes | Swap | 🚧 | Contract integration is wired to Aquarius `swap_chained`; live redeploy needs the four XLM-hub pool-index hashes for this testnet basket. |
 
 ## Phase 3 — RWA — **re-scoped 2026-07-08 (Challenge 5): synthetic tokens active, BENJI/DTCC future**
 

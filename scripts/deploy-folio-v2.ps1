@@ -1,14 +1,14 @@
-# Deploys a new Folio version (adds mint_single_asset) via the existing
+# Deploys a new Folio version (adds Aquarius-backed mint_single_asset) via the existing
 # Factory - immutable-folio versioning per ADR-006: upload new wasm, point the
-# factory at it, create a fresh folio, wire Soroswap, bootstrap. The old folio
+# factory at it, create a fresh folio, wire Aquarius routes, bootstrap. The old folio
 # is left untouched. Reuses the already-deployed tokens/feed/oracle-router and
-# the seeded Soroswap pools (token SAC addresses are deterministic, unchanged).
+# token SAC addresses.
 #
 # Writes the new folio address back into .stellar\nebula-testnet.json (folio_sef).
 
 $ErrorActionPreference = "Stop"
 $Network = "testnet"
-$SOROSWAP_ROUTER = "CCJUD55AG6W5HAI5LRVNKAE5WDP5XGZBUDS5WNTIVDU7O264UZZE7BRD"
+$AQUARIUS = "CBQDHNBFBZYE4MKPWBSJOPIYLW4SFSXAXUTSXJN76GNKYVYPCKWC6QUK"
 . "$PSScriptRoot\price-relay.ps1"
 
 function Invoke-Stellar {
@@ -42,8 +42,34 @@ $folio = Invoke-Stellar contract invoke --id $cfg.factory --source nebula-admin 
 $folio = $folio.Trim('"')
 Write-Host "  Folio v2: $folio"
 
-Write-Host "== 3. Wire the Soroswap Router (enables mint_single_asset)"
-Invoke-Stellar contract invoke --id $folio --source nebula-admin --network $Network '--' set_soroswap_router --soroswap_router $SOROSWAP_ROUTER
+Write-Host "== 3. Wire Aquarius AMM routes (enables mint_single_asset)"
+Invoke-Stellar contract invoke --id $folio --source nebula-admin --network $Network '--' set_aquarius_router --aquarius_router $AQUARIUS
+
+function Get-RequiredPoolIndex($name) {
+    $value = $cfg.$name
+    if (-not $value) {
+        throw "Missing $name in .stellar\nebula-testnet.json. Fill it with the Aquarius pool-index hash for this XLM/token route."
+    }
+    return $value
+}
+
+function OneHopRouteJson($tokenOut, $poolIndex) {
+    # Vec<(Vec<Address>, BytesN<32>, Address)> as JSON for the Stellar CLI.
+    return "[[[\`"$($cfg.xlm_sac)\`",\`"$tokenOut\`"],\`"$poolIndex\`",\`"$tokenOut\`"]]"
+}
+
+$routeSpecs = @(
+    @{ token = $cfg.sac_tstaqua; pool = (Get-RequiredPoolIndex "aquarius_pool_tstaqua_xlm") }
+    @{ token = $cfg.sac_tstvelo; pool = (Get-RequiredPoolIndex "aquarius_pool_tstvelo_xlm") }
+    @{ token = $cfg.sac_tstusdc; pool = (Get-RequiredPoolIndex "aquarius_pool_tstusdc_xlm") }
+    @{ token = $cfg.sac_tsteurc; pool = (Get-RequiredPoolIndex "aquarius_pool_tsteurc_xlm") }
+)
+
+foreach ($r in $routeSpecs) {
+    $routeJson = OneHopRouteJson $r.token $r.pool
+    Invoke-Stellar contract invoke --id $folio --source nebula-admin --network $Network '--' set_aquarius_route `
+        --token_in $cfg.xlm_sac --token_out $r.token --route $routeJson
+}
 
 Write-Host "== 4. Bootstrap ~`$100 at target ratio (amounts from live relayed prices)"
 $live = Get-RelayedPrices
