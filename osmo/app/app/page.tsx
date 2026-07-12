@@ -34,7 +34,14 @@ import {
 } from "@/lib/folio";
 import { useWallet } from "@/components/app/wallet-provider";
 import { useFolio } from "@/components/app/folio-provider";
-import { Donut, Dot, Stat, tokenSymbol } from "@/components/app/shared";
+import {
+  cardClass,
+  Donut,
+  Dot,
+  PageHeader,
+  StatCard,
+  tokenSymbol,
+} from "@/components/app/shared";
 
 export default function FolioPage() {
   const { address, missingTrustlines, addMissingTrustlines } = useWallet();
@@ -124,110 +131,118 @@ export default function FolioPage() {
 
   return (
     <>
-      {/* NAV summary */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl">
-            Stellar Ecosystem Folio (SEF)
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {navError ? (
-            <div className="rounded-md border border-[#f0883e]/40 bg-[#f0883e]/10 px-4 py-3">
-              <p className="text-sm font-semibold text-[#a94d16]">
-                NAV temporarily paused by oracle guard
-              </p>
-              <p className="mt-1 text-sm text-[#a94d16]">{navError}</p>
-            </div>
-          ) : nav ? (
-            <div className="flex flex-wrap gap-10">
-              <Stat
-                label="NAV / share"
-                value={`$${fmtUnits(nav.per_share, PRICE_DECIMALS, 6)}`}
-              />
-              <Stat
-                label="Total value"
-                value={`$${fmtUnits(nav.total_value, PRICE_DECIMALS, 2)}`}
-              />
-              <Stat
-                label="Shares outstanding"
-                value={fmtUnits(supply, SHARE_DECIMALS, 2)}
-              />
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">Loading…</p>
-          )}
-        </CardContent>
-      </Card>
+      <PageHeader
+        title="Stellar Ecosystem Folio"
+        subtitle="One SEF share tracks the whole basket of five Stellar assets. Mint against live oracle prices, or redeem any time — redemption is never pausable."
+      />
 
-      {/* Composition */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl">Composition</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-wrap items-center gap-6">
-          <Donut assets={assets} />
-          <div className="min-w-70 flex-1">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Asset</TableHead>
-                  <TableHead>Price</TableHead>
-                  <TableHead>Target</TableHead>
-                  <TableHead>Held by folio</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {assets.map((a, i) => {
-                  const pd = prices[a.token];
-                  return (
-                    <TableRow key={a.token}>
-                      <TableCell className="font-medium text-foreground">
-                        <Dot color={TOKEN_INFO[a.token]?.color} />
-                        {tokenSymbol(a.token)}
-                        {TOKEN_INFO[a.token]?.simulated && (
-                          <span
-                            className="ml-1 text-[#f0883e]"
-                            title="No real oracle coverage - simulated price"
-                          >
-                            (simulated)
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {pd ? `$${fmtUnits(pd.price, PRICE_DECIMALS, 6)}` : "—"}
-                      </TableCell>
-                      <TableCell>{(a.weight_bps / 100).toFixed(1)}%</TableCell>
-                      <TableCell>
-                        {balances[i] !== undefined
-                          ? fmtUnits(balances[i], a.decimals, 2)
-                          : "—"}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+      {/* NAV summary — dashboard metric row */}
+      {navError ? (
+        <div className={cn(cardClass, "px-6 py-5")}>
+          <p className="rounded-lg border border-[#d95b21]/30 bg-[#d95b21]/6 px-4 py-3 text-sm text-[#d95b21]">
+            NAV unavailable (oracle guard): {navError}
+          </p>
+        </div>
+      ) : nav ? (
+        <div className="grid gap-x-8 gap-y-6 sm:grid-cols-3">
+          <StatCard
+            label="NAV / share"
+            value={`$${fmtUnits(nav.per_share, PRICE_DECIMALS, 6)}`}
+            accent
+          />
+          <StatCard
+            label="Total value"
+            value={`$${fmtUnits(nav.total_value, PRICE_DECIMALS, 2)}`}
+          />
+          <StatCard
+            label="Shares outstanding"
+            value={fmtUnits(supply, SHARE_DECIMALS, 2)}
+          />
+        </div>
+      ) : (
+        <div className="grid gap-x-8 gap-y-6 sm:grid-cols-3">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className={cn(cardClass, "h-[104px] animate-pulse")} />
+          ))}
+        </div>
+      )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl">Your position</CardTitle>
-          <CardDescription>
-            {address
-              ? `${fmtUnits(myShares, SHARE_DECIMALS, 4)} SEF` +
-                (nav
-                  ? ` ≈ $${fmtUnits((toBig(myShares) * toBig(nav.per_share)) / 10n ** BigInt(SHARE_DECIMALS), PRICE_DECIMALS, 2)}`
-                  : "")
-              : "Connect a wallet to see your shares."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      {/* Composition + position, side by side on wide screens */}
+      <div className="grid gap-x-8 gap-y-6 mt-4 lg:grid-cols-3">
+        <Card className={cn(cardClass, "lg:col-span-2")}>
+          <CardHeader>
+            <CardTitle className="font-heading text-lg">Composition</CardTitle>
+            <CardDescription>
+              Target weights versus what the folio holds on chain right now.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap items-center gap-8">
+            <Donut assets={assets} />
+            <div className="min-w-70 flex-1">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Asset</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead>Target</TableHead>
+                    <TableHead className="text-right">Held</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {assets.map((a, i) => {
+                    const pd = prices[a.token];
+                    return (
+                      <TableRow key={a.token}>
+                        <TableCell className="font-medium text-foreground">
+                          <Dot color={TOKEN_INFO[a.token]?.color} />
+                          {tokenSymbol(a.token)}
+                          {TOKEN_INFO[a.token]?.simulated && (
+                            <span
+                              className="ml-1 text-[#d95b21]"
+                              title="No real oracle coverage - simulated price"
+                            >
+                              (sim)
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="tabular-nums">
+                          {pd
+                            ? `$${fmtUnits(pd.price, PRICE_DECIMALS, 6)}`
+                            : "—"}
+                        </TableCell>
+                        <TableCell className="tabular-nums">
+                          {(a.weight_bps / 100).toFixed(1)}%
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {balances[i] !== undefined
+                            ? fmtUnits(balances[i], a.decimals, 2)
+                            : "—"}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className={cardClass}>
+          <CardHeader>
+            <CardTitle className="font-heading text-lg">Your position</CardTitle>
+            <CardDescription>
+              {address
+                ? `${fmtUnits(myShares, SHARE_DECIMALS, 4)} SEF` +
+                  (nav
+                    ? ` ≈ $${fmtUnits((toBig(myShares) * toBig(nav.per_share)) / 10n ** BigInt(SHARE_DECIMALS), PRICE_DECIMALS, 2)}`
+                    : "")
+                : "Connect a wallet to see your shares."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
           {address && missingTrustlines.length > 0 && (
-            <div className="mb-4 rounded-md border border-[#f0883e] bg-[#f0883e]/10 px-4 py-3">
-              <p className="mb-2 text-sm text-[#f0883e]">
+            <div className="mb-4 rounded-lg border border-[#d95b21]/30 bg-[#d95b21]/6 px-4 py-3">
+              <p className="mb-2 text-sm text-[#d95b21]">
                 This wallet hasn't trusted{" "}
                 {missingTrustlines.map((a) => a.code).join(", ")} yet.
                 Trustlines are required once before minting (a base Stellar
@@ -247,11 +262,16 @@ export default function FolioPage() {
             </div>
           )}
 
-          <div className="flex flex-wrap gap-8">
-            <div className="min-w-55 flex-1 space-y-2">
-              <h3 className="text-sm font-semibold">Mint</h3>
+          <div className="space-y-5">
+            <div className="space-y-3">
+              <div className="flex items-baseline justify-between">
+                <h3 className="font-heading text-sm font-bold uppercase tracking-wide text-[#0b1428]">
+                  Mint
+                </h3>
+                <span className="text-xs text-gray-400">shares in</span>
+              </div>
               <Input
-                placeholder="shares e.g. 5"
+                placeholder="e.g. 5"
                 value={mintShares}
                 onChange={(e) => {
                   setMintShares(e.target.value);
@@ -261,20 +281,31 @@ export default function FolioPage() {
               />
               {quote ? (
                 <>
-                  <ul className="list-disc pl-5 text-sm text-muted-foreground">
+                  <ul className="space-y-1.5 py-1 text-sm">
                     {quote.map((d, i) => (
-                      <li key={i}>
-                        {fmtUnits(d, 7)} {tokenSymbol(assets[i]?.token ?? "")}
+                      <li
+                        key={i}
+                        className="flex justify-between tabular-nums text-gray-500"
+                      >
+                        <span>{tokenSymbol(assets[i]?.token ?? "")}</span>
+                        <span className="font-medium text-[#0b1428]">
+                          {fmtUnits(d, 7)}
+                        </span>
                       </li>
                     ))}
                   </ul>
-                  <Button onClick={onMint} disabled={busy || !address}>
+                  <Button
+                    onClick={onMint}
+                    className="w-full cursor-pointer rounded-full bg-[#1f4fb4] text-white hover:bg-[#1a44a0]"
+                    disabled={busy || !address}
+                  >
                     Confirm mint
                   </Button>
                 </>
               ) : (
                 <Button
                   onClick={onQuote}
+                  className="w-full cursor-pointer rounded-full bg-[#1f4fb4] text-white hover:bg-[#1a44a0]"
                   disabled={
                     busy ||
                     !address ||
@@ -286,16 +317,25 @@ export default function FolioPage() {
                 </Button>
               )}
             </div>
-            <div className="min-w-55 flex-1 space-y-2">
-              <h3 className="text-sm font-semibold">Redeem</h3>
+
+            <div className="space-y-3 border-t border-black/6 pt-5">
+              <div className="flex items-baseline justify-between">
+                <h3 className="font-heading text-sm font-bold uppercase tracking-wide text-[#0b1428]">
+                  Redeem
+                </h3>
+                <span className="text-xs text-gray-400">shares out</span>
+              </div>
               <Input
-                placeholder="shares e.g. 5"
+                placeholder="e.g. 5"
                 value={redeemShares}
                 onChange={(e) => setRedeemShares(e.target.value)}
+                className="cursor-pointer"
                 disabled={busy}
               />
               <Button
                 onClick={onRedeem}
+                variant="outline"
+                className="w-full cursor-pointer rounded-full border-2 border-black bg-white hover:bg-black/3"
                 disabled={busy || !address || !redeemShares}
               >
                 Redeem
@@ -303,12 +343,20 @@ export default function FolioPage() {
             </div>
           </div>
           {status && (
-            <p className={cn("mt-4 wrap-break-word text-sm text-[#1f4fb4]")}>
+            <p
+              className={cn(
+                "mt-4 wrap-break-word rounded-lg border px-4 py-2.5 text-sm",
+                status.includes("failed") || status.includes("Failed")
+                  ? "border-[#d95b21]/30 bg-[#d95b21]/6 text-[#d95b21]"
+                  : "border-[#1f4fb4]/25 bg-[#1f4fb4]/6 text-[#1f4fb4]",
+              )}
+            >
               {status}
             </p>
           )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </>
   );
 }

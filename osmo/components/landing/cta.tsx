@@ -1,7 +1,6 @@
 // Closing call-to-action panel with halftone print texture.
 
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { LaunchAppButton } from "@/components/launch-app-button";
 import { Reveal } from "@/components/landing/reveal";
 
 export function Cta() {
@@ -21,12 +20,11 @@ export function Cta() {
             SEF in under a minute.
           </p>
           <div className="relative mt-9">
-            <Button
-              asChild
+            <LaunchAppButton
               className="rounded-full bg-black px-10 text-white shadow-lg transition-shadow hover:bg-black/85 hover:shadow-[0_0_28px_rgba(217,91,33,0.35)]"
             >
-              <Link href="/app">MINT YOUR FIRST SEF →</Link>
-            </Button>
+              MINT YOUR FIRST SEF →
+            </LaunchAppButton>
           </div>
         </div>
       </Reveal>

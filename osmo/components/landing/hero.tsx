@@ -1,9 +1,8 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { ScrollLink } from "@/components/landing/scroll-link";
+import { LaunchAppButton } from "@/components/launch-app-button";
+import { FolioMotif } from "@/components/landing/folio-motif";
 
 export function Hero() {
   const [parallax, setParallax] = useState({ x: 0, y: 0 });
@@ -29,19 +28,20 @@ export function Hero() {
 
         <div className="mt-20 flex flex-wrap justify-between gap-10">
           <div className="max-w-md">
-            <Button
-              asChild
+            <LaunchAppButton
               variant="outline"
               className="rounded-full border-2 border-black bg-white/70 px-8 backdrop-blur transition-shadow hover:shadow-[0_0_24px_rgba(31,79,180,0.3)]"
             >
-              <Link href="/app">LAUNCH THE APP</Link>
-            </Button>
+              LAUNCH THE APP
+            </LaunchAppButton>
             <p className="mt-8 text-sm leading-relaxed text-gray-700">
               OSMO IS A DIVERSIFIED TOKEN FOLIO (DTF) ON STELLAR.
               <br />
               FIVE ECOSYSTEM ASSETS. ONE TOKEN: SEF.
             </p>
           </div>
+
+          <FolioMotif />
         </div>
       </div>
     </section>

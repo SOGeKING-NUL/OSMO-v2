@@ -20,6 +20,7 @@ import { FAUCET_AMOUNTS, TRUSTLINE_ASSETS } from "@/lib/config";
 import { dripTestTokens } from "@/lib/faucet";
 import { useWallet } from "@/components/app/wallet-provider";
 import { useFolio } from "@/components/app/folio-provider";
+import { cardClass, PageHeader } from "@/components/app/shared";
 
 export default function FaucetPage() {
   const {
@@ -72,78 +73,97 @@ export default function FaucetPage() {
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl">Testnet Faucet</CardTitle>
-          <CardDescription>
-            Get a free drip of every basket token so you can try minting SEF
-            shares without needing real assets. One drip per request; testnet
-            Friendbot can top up your XLM if you need more gas.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Token list */}
-          <div className="flex flex-wrap gap-3">
-            {tokens.map((t) => (
-              <div
-                key={t.code}
-                className="flex items-center gap-2 rounded-full border bg-background px-4 py-2 text-sm font-medium"
-              >
-                <span
-                  className="inline-block h-2.5 w-2.5 rounded-full"
-                  style={{ background: t.color }}
-                />
-                <span className="text-muted-foreground">
-                  {Number(t.amount).toLocaleString()} {t.code}
-                </span>
-              </div>
-            ))}
-          </div>
+      <PageHeader
+        title="Faucet"
+        subtitle="Grab a free drip of every basket token so you can try minting SEF without any real assets. Trustlines are set up for you automatically."
+      />
 
-          {/* Action */}
-          {address ? (
-            <div className="space-y-3">
-              {missingTrustlines.length > 0 && (
-                <p className="text-sm text-[#f0883e]">
-                  Missing trustlines for{" "}
-                  <strong>
-                    {missingTrustlines.map((a) => a.code).join(", ")}
-                  </strong>{" "}
-                  — they will be added automatically before the drip.
-                </p>
-              )}
-              <Button
-                onClick={onDrip}
-                disabled={busy}
-                className="w-full sm:w-auto"
-              >
-                {busy ? "Sending…" : "Request tokens"}
-              </Button>
+      <div className="grid gap-x-8 gap-y-6 lg:grid-cols-2">
+        {/* What you'll receive */}
+        <Card className={cardClass}>
+          <CardHeader>
+            <CardTitle className="font-heading text-lg">
+              You&apos;ll receive
+            </CardTitle>
+            <CardDescription>One drip of each basket token.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="divide-y divide-black/6">
+              {tokens.map((t) => (
+                <div
+                  key={t.code}
+                  className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
+                >
+                  <span className="flex items-center gap-2.5">
+                    <span
+                      className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+                      style={{ background: t.color }}
+                    />
+                    <span className="text-sm font-medium text-[#0b1428]">
+                      {t.code}
+                    </span>
+                  </span>
+                  <span className="font-heading text-sm font-bold tabular-nums text-gray-500">
+                    +{Number(t.amount).toLocaleString()}
+                  </span>
+                </div>
+              ))}
             </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Connect your Freighter wallet to request tokens.
-            </p>
-          )}
+          </CardContent>
+        </Card>
 
-          {status && (
-            <p
-              className={cn(
-                "wrap-break-word text-sm",
-                status.includes("✓") ? "text-[#1f4fb4]" : "text-[#f0883e]",
-              )}
-            >
-              {status}
-            </p>
-          )}
+        {/* Action */}
+        <Card className={cardClass}>
+          <CardHeader>
+            <CardTitle className="font-heading text-lg">
+              Request a drip
+            </CardTitle>
+            <CardDescription>
+              One drip per request. Testnet Friendbot can top up your XLM if you
+              need more gas.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {address ? (
+              <>
+                {missingTrustlines.length > 0 && (
+                  <p className="rounded-lg border border-[#d95b21]/30 bg-[#d95b21]/6 px-4 py-2.5 text-sm text-[#d95b21]">
+                    Missing trustlines for{" "}
+                    <strong>
+                      {missingTrustlines.map((a) => a.code).join(", ")}
+                    </strong>{" "}
+                    — they will be added automatically before the drip.
+                  </p>
+                )}
+                <Button
+                  onClick={onDrip}
+                  disabled={busy}
+                  className="w-full cursor-pointer rounded-full bg-[#1f4fb4] text-white hover:bg-[#1a44a0]"
+                >
+                  {busy ? "Sending…" : "Request tokens"}
+                </Button>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Connect your Freighter wallet to request tokens.
+              </p>
+            )}
 
-          <div className="rounded-md border bg-muted/40 px-4 py-3 text-xs text-muted-foreground">
-            <strong>Testnet only.</strong> The test issuer secret is embedded
-            client-side because this account holds no real value — it only
-            exists to distribute testnet tokens. Never do this on mainnet.
-          </div>
-        </CardContent>
-      </Card>
+            {status && (
+              <p
+                className={cn(
+                  "wrap-break-word rounded-lg border px-4 py-2.5 text-sm",
+                  status.includes("✓")
+                    ? "border-[#1f4fb4]/25 bg-[#1f4fb4]/6 text-[#1f4fb4]"
+                    : "border-[#d95b21]/30 bg-[#d95b21]/6 text-[#d95b21]",
+                )}
+              >
+                {status}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </>
   );
 }

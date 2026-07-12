@@ -5,7 +5,13 @@
 // Note: the Soroswap public testnet dashboard doesn't index pools created
 // outside its UI - we query the pair contracts directly via the Soroban RPC.
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -17,7 +23,12 @@ import {
 import { POOLS, PRICE_DECIMALS } from "@/lib/config";
 import { fmtUnits, toBig } from "@/lib/folio";
 import { useFolio } from "@/components/app/folio-provider";
-import { Dot, tokenSymbol } from "@/components/app/shared";
+import {
+  cardClass,
+  Dot,
+  PageHeader,
+  tokenSymbol,
+} from "@/components/app/shared";
 import { TOKEN_INFO } from "@/lib/config";
 
 /** Compute the implied XLM price of the paired token from pool reserves.
@@ -42,18 +53,20 @@ export default function PoolsPage() {
 
   return (
     <>
-      <Card>
+      <PageHeader
+        title="Soroswap Pools"
+        subtitle="Reserve data read directly from each XLM-hub pair contract on Stellar testnet — the pools that power the single-asset deposit route."
+      />
+
+      <Card className={cardClass}>
         <CardHeader>
-          <CardTitle className="text-xl">Soroswap Pools</CardTitle>
+          <CardTitle className="font-heading text-lg">Pair reserves</CardTitle>
+          <CardDescription>
+            Depositing XLM triggers a swap through each of these pairs to build
+            the full basket composition in one transaction.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="mb-4 text-sm text-muted-foreground">
-            Live reserve data read directly from each XLM-hub pair contract on
-            Stellar testnet. These pools power the single-asset deposit route —
-            depositing XLM triggers a swap through each of these pairs to build
-            the full basket composition in one transaction.
-          </p>
-
           <Table>
             <TableHeader>
               <TableRow>
@@ -107,9 +120,11 @@ export default function PoolsPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className={cardClass}>
         <CardHeader>
-          <CardTitle className="text-xl">About these pools</CardTitle>
+          <CardTitle className="font-heading text-lg">
+            About these pools
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-muted-foreground">
           <p>
@@ -118,12 +133,6 @@ export default function PoolsPage() {
             tab splits incoming XLM across all four pairs proportionally to the
             folio's target weights, then delivers the swapped tokens directly to
             the folio contract which mints SEF shares.
-          </p>
-          <p>
-            Pool IDs are set in <code>.env.local</code> — see{" "}
-            <code>.env.example</code> for the variable names. Prices are sourced
-            from Reflector oracle relay (tstVELO uses a simulated price because
-            Reflector has no VELO feed).
           </p>
         </CardContent>
       </Card>

@@ -1,5 +1,6 @@
-// Market board: live basket prices in a segmented strip. Each asset gets a
-// cell with its dot, symbol, oracle price and target weight.
+// Market board: live basket data in a segmented strip. Each asset gets a cell
+// with its dot, symbol, oracle price (or a refreshing note when the feed is
+// stale), the folio's on-chain holdings and its target weight.
 
 import { TickerItem } from "@/components/landing/data";
 import { Reveal } from "@/components/landing/reveal";
@@ -27,8 +28,19 @@ export function Ticker({ items }: { items: TickerItem[] }) {
                 <span className="h-2 w-2 rounded-full" style={{ background: it.color }} />
                 <span className="font-heading text-sm font-semibold">{it.symbol}</span>
               </div>
-              <div className="font-heading mt-2 text-lg font-bold tabular-nums">{it.price}</div>
+              {it.price ? (
+                <div className="font-heading mt-2 text-lg font-bold tabular-nums">{it.price}</div>
+              ) : (
+                <div className="mt-2 text-[11px] font-medium tracking-wide text-gray-400">
+                  price feed refreshing
+                </div>
+              )}
               <div className="mt-0.5 text-[11px] tracking-wide text-gray-400">
+                {it.held ? (
+                  <>
+                    <span className="tabular-nums text-gray-500">{it.held}</span> held ·{" "}
+                  </>
+                ) : null}
                 TARGET {it.weight}
               </div>
             </div>

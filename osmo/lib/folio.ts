@@ -5,6 +5,7 @@
 import {
   getAddress,
   isAllowed,
+  isConnected,
   requestAccess,
   signTransaction,
 } from "@stellar/freighter-api";
@@ -82,6 +83,16 @@ async function getWriteClient(publicKey: string): Promise<AnyClient> {
 }
 
 // --- wallet ---
+
+/** True when the Freighter extension is present in this browser. */
+export async function isFreighterAvailable(): Promise<boolean> {
+  try {
+    const res = await isConnected();
+    return !!res.isConnected;
+  } catch {
+    return false;
+  }
+}
 
 export async function connectWallet(): Promise<string> {
   const access = await requestAccess();

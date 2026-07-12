@@ -8,16 +8,23 @@ export function Stats({ nav, supply }: { nav: NavInfo | null; supply: bigint | n
   const stats = [
     {
       label: "NAV / SHARE",
-      value: nav ? `$${fmtUnits(nav.per_share, PRICE_DECIMALS, 6)}` : "···",
-      live: true,
+      value: nav ? `$${fmtUnits(nav.per_share, PRICE_DECIMALS, 6)}` : null,
+      live: !!nav,
+      // NAV can only be priced when every oracle feed is fresh; the folio's
+      // staleness guard reverts nav() rather than serving a stale valuation.
+      note: "awaiting oracle feed",
     },
     {
       label: "TOTAL VALUE LOCKED",
-      value: nav ? `$${fmtUnits(nav.total_value, PRICE_DECIMALS, 2)}` : "···",
+      value: nav ? `$${fmtUnits(nav.total_value, PRICE_DECIMALS, 2)}` : null,
+      live: !!nav,
+      note: "awaiting oracle feed",
     },
     {
       label: "SHARES OUTSTANDING",
-      value: supply !== null ? fmtUnits(supply, SHARE_DECIMALS, 2) : "···",
+      value: supply !== null ? fmtUnits(supply, SHARE_DECIMALS, 2) : null,
+      live: supply !== null,
+      note: "SEF shares minted",
     },
   ];
 
@@ -39,7 +46,19 @@ export function Stats({ nav, supply }: { nav: NavInfo | null; supply: bigint | n
                 </span>
               )}
             </div>
-            <div className="font-heading mt-3 text-3xl font-bold tabular-nums">{s.value}</div>
+            {s.value !== null ? (
+              <>
+                <div className="font-heading mt-3 text-3xl font-bold tabular-nums">{s.value}</div>
+                {s.label === "SHARES OUTSTANDING" && (
+                  <div className="mt-1 text-[11px] text-gray-400">{s.note}</div>
+                )}
+              </>
+            ) : (
+              <div className="mt-3 flex items-center gap-2 text-sm font-medium text-gray-400">
+                <span className="h-2 w-2 animate-pulse rounded-full bg-amber-400" />
+                {s.note}
+              </div>
+            )}
           </div>
         ))}
       </div>

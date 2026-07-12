@@ -7,6 +7,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { LaunchAppButton } from "@/components/launch-app-button";
 import { POOLS, TOKEN_INFO } from "@/lib/config";
 import { useLiveFolio } from "@/hooks/use-live-folio";
 import { fmtUnits } from "@/lib/folio";
@@ -59,16 +60,22 @@ function DtfNavbar() {
             HOME
           </Link>
           <Link
-            href="/app"
+            href="/doc"
+            className="text-xs font-medium tracking-widest text-gray-500 transition-colors hover:text-black"
+          >
+            DOCS
+          </Link>
+          <LaunchAppButton
+            plain
             className={cn(
-              "text-sm font-medium transition-all",
+              "cursor-pointer text-sm font-medium transition-all",
               scrolled
                 ? "rounded-full bg-black px-5 py-2 text-white hover:bg-black/85"
                 : "hover:underline",
             )}
           >
             LAUNCH APP
-          </Link>
+          </LaunchAppButton>
         </div>
       </nav>
     </div>
@@ -165,18 +172,20 @@ export default function DtfPage() {
             on the entire basket — no manual portfolio management required.
           </p>
           <div className="flex justify-center gap-3 pt-2">
-            <Link
+            <LaunchAppButton
+              plain
               href="/app/deposit"
-              className="rounded-full bg-[#1f4fb4] px-6 py-2.5 text-sm font-semibold text-white shadow hover:bg-[#1a44a0]"
+              className="cursor-pointer rounded-full bg-[#1f4fb4] px-6 py-2.5 text-sm font-semibold text-white shadow hover:bg-[#1a44a0]"
             >
               Start depositing
-            </Link>
-            <Link
+            </LaunchAppButton>
+            <LaunchAppButton
+              plain
               href="/app"
-              className="rounded-full border border-black/10 bg-white px-6 py-2.5 text-sm font-semibold shadow hover:bg-black/5"
+              className="cursor-pointer rounded-full border border-black/10 bg-white px-6 py-2.5 text-sm font-semibold shadow hover:bg-black/5"
             >
               View folio
-            </Link>
+            </LaunchAppButton>
           </div>
         </section>
 
@@ -340,18 +349,20 @@ export default function DtfPage() {
             tokens, then deposit to mint your first SEF shares.
           </p>
           <div className="mt-6 flex justify-center gap-3">
-            <Link
+            <LaunchAppButton
+              plain
               href="/app/faucet"
-              className="rounded-full border border-black/10 bg-white px-6 py-2.5 text-sm font-semibold shadow hover:bg-black/5"
+              className="cursor-pointer rounded-full border border-black/10 bg-white px-6 py-2.5 text-sm font-semibold shadow hover:bg-black/5"
             >
               Get test tokens
-            </Link>
-            <Link
+            </LaunchAppButton>
+            <LaunchAppButton
+              plain
               href="/app/deposit"
-              className="rounded-full bg-[#1f4fb4] px-6 py-2.5 text-sm font-semibold text-white shadow hover:bg-[#1a44a0]"
+              className="cursor-pointer rounded-full bg-[#1f4fb4] px-6 py-2.5 text-sm font-semibold text-white shadow hover:bg-[#1a44a0]"
             >
               Deposit now
-            </Link>
+            </LaunchAppButton>
           </div>
         </section>
       </main>

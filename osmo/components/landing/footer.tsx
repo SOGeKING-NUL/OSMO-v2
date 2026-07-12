@@ -1,6 +1,7 @@
-// Landing footer: wordmark, protocol tagline, app link.
+// Landing footer: wordmark, protocol tagline, docs + app links.
 
 import Link from "next/link";
+import { LaunchAppButton } from "@/components/launch-app-button";
 
 export function Footer() {
   return (
@@ -16,12 +17,20 @@ export function Footer() {
           </span>
         </div>
         <p className="text-center">REDEMPTION IS NEVER PAUSABLE</p>
-        <Link
-          href="/app"
-          className="font-medium text-gray-600 hover:text-black hover:underline"
-        >
-          LAUNCH APP →
-        </Link>
+        <div className="flex items-center gap-6">
+          <Link
+            href="/doc"
+            className="font-medium text-gray-600 transition-colors hover:text-black hover:underline"
+          >
+            DOCS
+          </Link>
+          <LaunchAppButton
+            plain
+            className="cursor-pointer font-medium text-gray-600 hover:text-black hover:underline"
+          >
+            LAUNCH APP →
+          </LaunchAppButton>
+        </div>
       </div>
     </footer>
   );
