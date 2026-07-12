@@ -68,7 +68,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <main className="mt-6 space-y-6">{children}</main>
 
         <footer className="py-6 text-center text-xs text-muted-foreground">
-          Testnet · deposit-XLM single-asset mint via Soroswap · redemption is
+          Testnet · deposit-XLM single-asset mint via Aquarius · redemption is
           never pausable
         </footer>
       </div>

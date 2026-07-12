@@ -17,12 +17,14 @@ import {
   contract,
 } from "@stellar/stellar-sdk";
 import {
+  AQUARIUS_ID,
   FOLIO_ID,
   HORIZON_URL,
   NETWORK_PASSPHRASE,
   ROUTER_ID,
   RPC_URL,
   TRUSTLINE_ASSETS,
+  XLM_TOKEN,
 } from "@/lib/config";
 
 export interface AssetInfo {
@@ -43,6 +45,7 @@ type AnyClient = contract.Client & Record<string, any>;
 
 let readClient: AnyClient | undefined;
 let routerClient: AnyClient | undefined;
+let aquariusClient: AnyClient | undefined;
 
 async function getReadClient(): Promise<AnyClient> {
   if (!readClient) {
@@ -64,6 +67,17 @@ async function getRouterClient(): Promise<AnyClient> {
     })) as AnyClient;
   }
   return routerClient;
+}
+
+async function getAquariusClient(): Promise<AnyClient> {
+  if (!aquariusClient) {
+    aquariusClient = (await contract.Client.from({
+      contractId: AQUARIUS_ID,
+      networkPassphrase: NETWORK_PASSPHRASE,
+      rpcUrl: RPC_URL,
+    })) as AnyClient;
+  }
+  return aquariusClient;
 }
 
 /** Client bound to the connected wallet, for state-changing calls. */
@@ -268,7 +282,7 @@ export async function sendRedeem(
 
 /**
  * Single-asset deposit: deposit `depositAmount` of `depositToken` (e.g. XLM),
- * the contract swaps into the whole basket via Soroswap and mints shares.
+ * the contract swaps into the whole basket via configured Aquarius routes and mints shares.
  * Simulate first (no signature) to preview the shares, then send.
  */
 export async function quoteMintSingle(
@@ -307,28 +321,24 @@ export async function sendMintSingle(
   return toBig(unwrapResult<bigint>(result));
 }
 
-// --- pools (read reserves straight from each Soroswap pair contract) ---
+// --- pools (read reserves from the Aquarius AMM entry contract) ---
 
 export interface PoolReserves {
   reserve0: bigint;
   reserve1: bigint;
 }
 
-const poolClients: Record<string, AnyClient> = {};
-
-export async function fetchPoolReserves(poolId: string): Promise<PoolReserves | null> {
+export async function fetchPoolReserves(poolIndex: string, token: string): Promise<PoolReserves | null> {
   try {
-    if (!poolClients[poolId]) {
-      poolClients[poolId] = (await contract.Client.from({
-        contractId: poolId,
-        networkPassphrase: NETWORK_PASSPHRASE,
-        rpcUrl: RPC_URL,
-      })) as AnyClient;
-    }
-    const res = unwrapResult<bigint[]>((await poolClients[poolId].get_reserves()).result);
+    if (!/^[0-9a-fA-F]{64}$/.test(poolIndex)) return null;
+    const c = await getAquariusClient();
+    const res = unwrapResult<bigint[]>((await c.get_reserves({
+      tokens: [XLM_TOKEN, token],
+      pool_index: poolIndex,
+    })).result);
     return { reserve0: toBig(res[0]), reserve1: toBig(res[1]) };
   } catch {
-    return null; // pool not seeded yet
+    return null; // pool not configured, not indexed, or not available on this network
   }
 }
 

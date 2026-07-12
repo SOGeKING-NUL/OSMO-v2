@@ -97,7 +97,7 @@ export default function App() {
     if (assets.length) {
       fetchAssetPrices(assets.map((a) => a.token)).then(setPrices);
     }
-    Promise.all(POOLS.map((p) => fetchPoolReserves(p.id))).then((rs) =>
+    Promise.all(POOLS.map((p) => fetchPoolReserves(p.id, p.token))).then((rs) =>
       setPools(Object.fromEntries(POOLS.map((p, i) => [p.id, rs[i]]))),
     );
   }, [wallet, assets]);
@@ -332,7 +332,7 @@ export default function App() {
           <h2>Deposit XLM → get the basket ✨</h2>
           <p className="muted">
             One asset in, whole basket out: the contract swaps your XLM across every basket
-            token via Soroswap and mints SEF — no need to hold all five yourself.
+            token via Aquarius and mints SEF — no need to hold all five yourself.
           </p>
           <div className="single-deposit">
             <input
@@ -437,13 +437,13 @@ export default function App() {
       <section className="card">
         <h2>Liquidity pools</h2>
         <p className="muted">
-          Live reserves of the Soroswap pools the single-asset deposit swaps through, read
-          straight from each pair contract.
+          Live reserves of the Aquarius pools the single-asset deposit swaps through, read
+          from the Aquarius AMM entry contract.
         </p>
         <table>
           <thead>
             <tr>
-              <th>Soroswap pool</th>
+              <th>Aquarius pool</th>
               <th>XLM reserve</th>
               <th>Paired reserve</th>
             </tr>
@@ -451,16 +451,14 @@ export default function App() {
           <tbody>
             {POOLS.map((p) => {
               const r = pools[p.id];
-              // pair contract orders reserves by token address; XLM is token1
-              // in every one of our pools (checked at seed time)
               return (
                 <tr key={p.id}>
                   <td>
                     <span className="dot" style={{ background: TOKEN_INFO[p.token]?.color ?? "#888" }} />
                     {p.pair}
                   </td>
-                  <td>{r ? fmtUnits(r.reserve1, 7, 2) : "—"}</td>
-                  <td>{r ? `${fmtUnits(r.reserve0, 7, 2)} ${TOKEN_INFO[p.token]?.symbol ?? ""}` : "—"}</td>
+                  <td>{r ? fmtUnits(r.reserve0, 7, 2) : "—"}</td>
+                  <td>{r ? `${fmtUnits(r.reserve1, 7, 2)} ${TOKEN_INFO[p.token]?.symbol ?? ""}` : "—"}</td>
                 </tr>
               );
             })}
@@ -469,7 +467,7 @@ export default function App() {
       </section>
 
       <footer>
-        Testnet · deposit-XLM single-asset mint via Soroswap · redemption is never pausable
+        Testnet · deposit-XLM single-asset mint via Aquarius · redemption is never pausable
       </footer>
     </main>
   );

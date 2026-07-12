@@ -258,8 +258,8 @@ export default function DtfPage() {
             />
             <StepCard
               n={2}
-              title="Automatic Soroswap routing"
-              body="The contract swaps your deposit through XLM-hub Soroswap pools into each basket token, weighted by target allocation."
+              title="Automatic Aquarius routing"
+              body="The contract swaps your deposit through configured XLM-hub Aquarius routes into each basket token, weighted by target allocation."
             />
             <StepCard
               n={3}
@@ -281,8 +281,8 @@ export default function DtfPage() {
               Underlying pools
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Four Soroswap XLM-hub pools power the single-asset deposit route.
-              Reserve data is read live from each pair contract.{" "}
+              Four Aquarius XLM-hub pools power the single-asset deposit route.
+              Reserve data is read live from the Aquarius AMM entry contract.{" "}
               <Link
                 href="/app/pools"
                 className="font-medium text-[#1f4fb4] underline underline-offset-2"

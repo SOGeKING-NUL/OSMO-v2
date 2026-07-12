@@ -6,6 +6,7 @@ const env = import.meta.env;
 export const NETWORK_PASSPHRASE = env.VITE_NETWORK_PASSPHRASE;
 export const RPC_URL = env.VITE_RPC_URL;
 export const HORIZON_URL = env.VITE_HORIZON_URL;
+export const AQUARIUS_ID = env.VITE_AQUARIUS_ID || "CBQDHNBFBZYE4MKPWBSJOPIYLW4SFSXAXUTSXJN76GNKYVYPCKWC6QUK";
 export const FOLIO_ID = env.VITE_FOLIO_ID;
 export const ROUTER_ID = env.VITE_ROUTER_ID;
 
@@ -13,15 +14,15 @@ export const ROUTER_ID = env.VITE_ROUTER_ID;
 export const XLM_TOKEN = env.VITE_TOKEN_XLM;
 
 /**
- * Seeded Soroswap XLM-hub pools we read reserves from for the Pools page.
- * (Read directly from chain — the public Soroswap testnet dashboard indexes
- * pools through its own pipeline and doesn't list ones created outside its UI.)
+ * Aquarius XLM-hub pool-index hashes used by the Pools page and deployment
+ * route wiring. Populate these from Aquarius pool/path discovery for the
+ * exact token contracts in the basket.
  */
 export const POOLS = [
-  { pair: "tstAQUA / XLM", id: env.VITE_POOL_TSTAQUA_XLM, token: env.VITE_TOKEN_TSTAQUA },
-  { pair: "tstVELO / XLM", id: env.VITE_POOL_TSTVELO_XLM, token: env.VITE_TOKEN_TSTVELO },
-  { pair: "tstUSDC / XLM", id: env.VITE_POOL_TSTUSDC_XLM, token: env.VITE_TOKEN_TSTUSDC },
-  { pair: "tstEURC / XLM", id: env.VITE_POOL_TSTEURC_XLM, token: env.VITE_TOKEN_TSTEURC },
+  { pair: "tstAQUA / XLM", id: env.VITE_POOL_TSTAQUA_XLM || "UNCONFIGURED_TSTAQUA_XLM", token: env.VITE_TOKEN_TSTAQUA },
+  { pair: "tstVELO / XLM", id: env.VITE_POOL_TSTVELO_XLM || "UNCONFIGURED_TSTVELO_XLM", token: env.VITE_TOKEN_TSTVELO },
+  { pair: "tstUSDC / XLM", id: env.VITE_POOL_TSTUSDC_XLM || "UNCONFIGURED_TSTUSDC_XLM", token: env.VITE_TOKEN_TSTUSDC },
+  { pair: "tstEURC / XLM", id: env.VITE_POOL_TSTEURC_XLM || "UNCONFIGURED_TSTEURC_XLM", token: env.VITE_TOKEN_TSTEURC },
 ];
 
 /**

@@ -12,7 +12,7 @@ const STEPS = [
   {
     n: "02",
     title: "DEPOSIT",
-    body: "Deposit XLM once and the contract swaps it across all five basket tokens via Soroswap, minting SEF straight to your wallet.",
+    body: "Deposit XLM once and the contract swaps it across all five basket tokens via Aquarius, minting SEF straight to your wallet.",
   },
   {
     n: "03",

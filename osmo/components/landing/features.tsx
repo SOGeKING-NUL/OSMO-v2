@@ -6,7 +6,7 @@ import { SectionLabel } from "@/components/landing/section-label";
 const FEATURES = [
   {
     title: "SINGLE-ASSET MINT",
-    body: "One XLM in, five assets out. Swaps route through Soroswap pools atomically inside the mint transaction.",
+    body: "One XLM in, five assets out. Swaps route through Aquarius pools atomically inside the mint transaction.",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-6 w-6">
         <path d="M4 7h13M13 3l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />

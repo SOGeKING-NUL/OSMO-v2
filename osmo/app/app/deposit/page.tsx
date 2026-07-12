@@ -111,7 +111,7 @@ export default function DepositPage() {
         <CardHeader>
           <CardTitle className="text-xl">Deposit XLM → SEF</CardTitle>
           <CardDescription>
-            Send any amount of XLM. The contract routes it through Soroswap into
+            Send any amount of XLM. The contract routes it through Aquarius into
             the full basket composition and mints SEF shares in a single
             transaction — no need to hold all five tokens yourself.
           </CardDescription>
@@ -180,7 +180,7 @@ export default function DepositPage() {
 
           <div className="mt-4 rounded-md border bg-muted/40 px-4 py-3 text-xs text-muted-foreground">
             <strong>How it works:</strong> Your XLM is swapped through separate
-            XLM ↔ token Soroswap pools for each basket asset. The contract reads
+            XLM ↔ token Aquarius routes for each basket asset. The contract reads
             live pool prices to determine the optimal split. Slippage tolerance
             is 1% per swap leg.
           </div>
