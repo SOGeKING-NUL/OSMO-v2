@@ -1,17 +1,12 @@
-//! Fixed-rate stand-in for the real Soroswap Router, used only to unit-test
+//! Fixed-rate stand-in for the Aquarius AMM entry contract, used only to unit-test
 //! `mint_single_asset`'s internal accounting in isolation (no network). The
-//! real router's behavior (input pulled from `to`, no separate approve step;
-//! `router_pair_for` a deterministic address) was verified live against the
-//! actual testnet contract before writing this — see DECISION_LOG ADR-016.
-//!
-//! This mock is its own "pair": it pulls the input into itself and pays the
-//! output back out, so `router_pair_for` returns the mock's own address —
-//! which is exactly the `to` the Folio pre-authorizes the input transfer to.
-//! Two-hop paths only (`path.len() == 2`) — all `mint_single_asset` builds.
+//! mock is its own pool: it pulls the input into itself and pays the output
+//! back to the folio. One-hop routes only — all unit tests build direct XLM
+//! hub routes.
 
 #![no_std]
 
-use nebula_interfaces::SoroswapError;
+use nebula_interfaces::{AquariusError, AquariusSwap};
 use soroban_sdk::{
     contract, contracterror, contractimpl, contracttype, panic_with_error, token, Address, Env, Vec,
 };
@@ -33,15 +28,14 @@ enum DataKey {
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum MockRouterError {
     SlippageExceeded = 1,
-    DeadlinePassed = 2,
-    UnknownPair = 3,
+    UnknownPair = 2,
 }
 
 #[contract]
-pub struct MockSoroswapRouter;
+pub struct MockAquariusRouter;
 
 #[contractimpl]
-impl MockSoroswapRouter {
+impl MockAquariusRouter {
     pub fn __constructor(e: Env, admin: Address) {
         e.storage().instance().set(&DataKey::Admin, &admin);
     }
@@ -56,32 +50,19 @@ impl MockSoroswapRouter {
             .set(&DataKey::Rate(RateKey { token_in, token_out }), &rate);
     }
 
-    pub fn router_pair_for(
+    pub fn swap_chained(
         e: Env,
-        _token_a: Address,
-        _token_b: Address,
-    ) -> Result<Address, SoroswapError> {
-        // the mock is its own pool
-        Ok(e.current_contract_address())
-    }
-
-    pub fn swap_exact_tokens_for_tokens(
-        e: Env,
-        amount_in: i128,
-        amount_out_min: i128,
-        path: Vec<Address>,
-        to: Address,
-        deadline: u64,
-    ) -> Result<Vec<i128>, SoroswapError> {
-        to.require_auth();
-        if e.ledger().timestamp() > deadline {
-            panic_with_error!(&e, MockRouterError::DeadlinePassed);
-        }
-        if path.len() != 2 {
+        user: Address,
+        swaps_chain: Vec<AquariusSwap>,
+        token_in: Address,
+        in_amount: u128,
+        out_min: u128,
+    ) -> Result<u128, AquariusError> {
+        user.require_auth();
+        if swaps_chain.len() != 1 {
             panic_with_error!(&e, MockRouterError::UnknownPair);
         }
-        let token_in = path.get_unchecked(0);
-        let token_out = path.get_unchecked(1);
+        let token_out = swaps_chain.get_unchecked(0).2;
         let rate: i128 = e
             .storage()
             .instance()
@@ -91,15 +72,16 @@ impl MockSoroswapRouter {
             }))
             .unwrap_or_else(|| panic_with_error!(&e, MockRouterError::UnknownPair));
 
-        let amount_out = amount_in * rate / 10i128.pow(7); // floor
-        if amount_out < amount_out_min {
+        let in_i128 = in_amount as i128;
+        let amount_out = in_i128 * rate / 10i128.pow(7); // floor
+        if amount_out < out_min as i128 {
             panic_with_error!(&e, MockRouterError::SlippageExceeded);
         }
 
         let this = e.current_contract_address();
-        token::TokenClient::new(&e, &token_in).transfer(&to, &this, &amount_in);
-        token::TokenClient::new(&e, &token_out).transfer(&this, &to, &amount_out);
+        token::TokenClient::new(&e, &token_in).transfer(&user, &this, &in_i128);
+        token::TokenClient::new(&e, &token_out).transfer(&this, &user, &amount_out);
 
-        Ok(Vec::from_array(&e, [amount_in, amount_out]))
+        Ok(amount_out as u128)
     }
 }

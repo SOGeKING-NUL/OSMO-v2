@@ -15,7 +15,7 @@
 
 #![no_std]
 
-use nebula_interfaces::{OracleRouterClient, SoroswapRouterClient, PRICE_DECIMALS};
+use nebula_interfaces::{AquariusRouterClient, AquariusSwap, OracleRouterClient, PRICE_DECIMALS};
 use soroban_sdk::auth::{ContractContext, InvokerContractAuthEntry, SubContractInvocation};
 use soroban_sdk::{
     contract, contracterror, contractimpl, contracttype, panic_with_error, symbol_short, token,
@@ -51,8 +51,9 @@ pub enum FolioError {
     AmountTooSmall = 7,
     LengthMismatch = 8,
     Overflow = 9,
-    SoroswapNotConfigured = 10,
+    AquariusNotConfigured = 10,
     DeadlinePassed = 11,
+    AquariusRouteNotConfigured = 12,
 }
 
 /// One basket constituent.
@@ -77,12 +78,20 @@ pub struct NavInfo {
 }
 
 #[contracttype]
+#[derive(Clone)]
+struct RouteKey {
+    token_in: Address,
+    token_out: Address,
+}
+
+#[contracttype]
 enum DataKey {
     Admin,
     Router,
     Assets,
     Paused,
-    SoroswapRouter,
+    AquariusRouter,
+    AquariusRoute(RouteKey),
 }
 
 #[contract]
@@ -242,8 +251,7 @@ impl NebulaFolio {
     /// Mint shares by depositing a single asset (e.g. XLM) instead of the
     /// whole basket. The deposit is split across the basket by each asset's
     /// current value fraction, and every non-deposit slice is swapped into
-    /// that asset via the real Soroswap Router (see IMPLEMENTATION_PLAN.md
-    /// §2.4; `soroswap_router` must be configured via `set_soroswap_router`).
+    /// that asset via Aquarius AMM routes configured by the admin.
     ///
     /// Fairness (bears its own slippage, never dilutes holders): shares are
     /// minted from the folio's *actual* USD value gain after the swaps —
@@ -280,7 +288,7 @@ impl NebulaFolio {
             panic_with_error!(&e, FolioError::NotBootstrapped);
         }
 
-        let soroswap = SoroswapRouterClient::new(&e, &Self::soroswap_router(e.clone()));
+        let aquarius = AquariusRouterClient::new(&e, &Self::aquarius_router(e.clone()));
         let oracle = OracleRouterClient::new(&e, &Self::router(e.clone()));
         let assets = Self::get_assets(e.clone());
         let this = e.current_contract_address();
@@ -318,13 +326,13 @@ impl NebulaFolio {
             if alloc <= 0 {
                 continue;
             }
-            let path = vec![&e, deposit_token.clone(), a.token.clone()];
-            let pair = soroswap.router_pair_for(&deposit_token, &a.token);
-            // authorize the router to move exactly `alloc` of deposit_token
-            // from this folio into the pair (folio isn't the direct caller of
-            // that transfer, so mock/implicit auth doesn't cover it)
-            authorize_transfer(&e, &deposit_token, &this, &pair, alloc);
-            soroswap.swap_exact_tokens_for_tokens(&alloc, &0i128, &path, &this, &deadline);
+            let route = Self::aquarius_route(e.clone(), deposit_token.clone(), a.token.clone());
+            // authorize the Aquarius entry contract to move exactly `alloc`
+            // of deposit_token from this folio. The folio is passed as the
+            // `user` source to `swap_chained`, so the downstream token
+            // transfer must match this auth entry exactly.
+            authorize_transfer(&e, &deposit_token, &this, &Self::aquarius_router(e.clone()), alloc);
+            aquarius.swap_chained(&this, &route, &deposit_token, &(alloc as u128), &0u128);
         }
 
         // mint from the value actually added (depositor bears own slippage)
@@ -451,13 +459,21 @@ impl NebulaFolio {
         e.storage().instance().get(&DataKey::Router).unwrap()
     }
 
-    /// The Soroswap Router used by `mint_single_asset`. Traps with a clear
+    /// The Aquarius AMM entry contract used by `mint_single_asset`. Traps with a clear
     /// error (rather than the generic missing-key panic) if never set.
-    pub fn soroswap_router(e: Env) -> Address {
+    pub fn aquarius_router(e: Env) -> Address {
         e.storage()
             .instance()
-            .get(&DataKey::SoroswapRouter)
-            .unwrap_or_else(|| panic_with_error!(&e, FolioError::SoroswapNotConfigured))
+            .get(&DataKey::AquariusRouter)
+            .unwrap_or_else(|| panic_with_error!(&e, FolioError::AquariusNotConfigured))
+    }
+
+    /// Configured Aquarius route for a single input/output token pair.
+    pub fn aquarius_route(e: Env, token_in: Address, token_out: Address) -> Vec<AquariusSwap> {
+        e.storage()
+            .instance()
+            .get(&DataKey::AquariusRoute(RouteKey { token_in, token_out }))
+            .unwrap_or_else(|| panic_with_error!(&e, FolioError::AquariusRouteNotConfigured))
     }
 
     pub fn paused(e: Env) -> bool {
@@ -478,12 +494,25 @@ impl NebulaFolio {
         e.storage().instance().set(&DataKey::Router, &router);
     }
 
-    /// Configure (or change) the Soroswap Router used by `mint_single_asset`.
+    /// Configure (or change) the Aquarius AMM entry contract used by `mint_single_asset`.
     /// Deliberately not a constructor param — avoids a Factory redeploy just
     /// to wire an external dependency; set once by admin after deploying.
-    pub fn set_soroswap_router(e: Env, soroswap_router: Address) {
+    pub fn set_aquarius_router(e: Env, aquarius_router: Address) {
         Self::admin(e.clone()).require_auth();
-        e.storage().instance().set(&DataKey::SoroswapRouter, &soroswap_router);
+        e.storage().instance().set(&DataKey::AquariusRouter, &aquarius_router);
+    }
+
+    /// Store the Aquarius swap chain for an exact input/output pair. This
+    /// keeps deposits simple for users while letting deployment scripts update
+    /// paths when Aquarius pool topology changes.
+    pub fn set_aquarius_route(e: Env, token_in: Address, token_out: Address, route: Vec<AquariusSwap>) {
+        Self::admin(e.clone()).require_auth();
+        if route.len() == 0 {
+            panic_with_error!(&e, FolioError::BadConfig);
+        }
+        e.storage()
+            .instance()
+            .set(&DataKey::AquariusRoute(RouteKey { token_in, token_out }), &route);
     }
 
     fn require_not_paused(e: &Env) {
