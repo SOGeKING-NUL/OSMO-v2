@@ -4,6 +4,8 @@ import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 import { cn } from "@/lib/utils";
 import { SmoothScroll } from '@/components/smooth-scroll';
+import { WalletProvider } from '@/components/app/wallet-provider';
+import { ConnectWalletModal } from '@/components/app/connect-wallet-modal';
 
 const inter = Inter({subsets:['latin'],variable:'--font-sans'});
 
@@ -26,6 +28,29 @@ export const metadata: Metadata = {
   title: 'OSMO — Stellar Ecosystem Folio',
   description:
     'One deposit, the whole Stellar basket. A diversified token folio (DTF) on Stellar testnet — five ecosystem assets, one token: SEF.',
+    openGraph: {
+    title: "OSMO — Stellar Ecosystem Folio",
+    description: "One deposit, the whole Stellar basket. A diversified token folio (DTF) on Stellar testnet — five ecosystem assets, one token: SEF.",
+    url: "https://osmo-one.vercel.app/", 
+    siteName: "OSMO — Stellar Ecosystem Folio",
+    images: [
+      {
+        url: "/landingpage.png", 
+        width: 1200,
+        height: 630,
+        alt: "OSMO — Stellar Ecosystem Folio",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "OSMO — Stellar Ecosystem Folio",
+    description: "One deposit, the whole Stellar basket. A diversified token folio (DTF) on Stellar testnet — five ecosystem assets, one token: SEF.",
+    images: ["/landingpage.png"], 
+    site: "@osmodtf", 
+  },
 }
 
 export default function RootLayout({
@@ -36,9 +61,12 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn("font-sans", inter.variable, spaceGrotesk.variable)}>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
-         <SmoothScroll>
-          {children}
-         </SmoothScroll>
+        <WalletProvider>
+          <SmoothScroll>
+            {children}
+          </SmoothScroll>
+          <ConnectWalletModal />
+        </WalletProvider>
         <Analytics />
       </body>
     </html>

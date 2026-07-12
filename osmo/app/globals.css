@@ -185,6 +185,23 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Hide scrollbars in every browser while keeping scroll/wheel/touch working.
+   Firefox uses scrollbar-width; IE/legacy-Edge use -ms-overflow-style;
+   Chrome/Safari/new-Edge/Opera use the ::-webkit-scrollbar pseudo-element. */
+html,
+body,
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE 10+ / legacy Edge */
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none; /* Chrome, Safari, new Edge, Opera */
+}
+
 /* --- OSMO design helpers ------------------------------------------------ */
 
 /* faint engineering dot grid (hero backgrounds) */
