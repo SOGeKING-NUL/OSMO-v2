@@ -3,11 +3,11 @@
 use crate::{FolioError, NebulaFolio, NebulaFolioClient};
 use nebula_interfaces::OracleAsset;
 use nebula_mock_price_feed::{MockPriceFeed, MockPriceFeedClient};
-use nebula_mock_soroswap_router::{MockAquariusRouter, MockAquariusRouterClient};
+use nebula_mock_soroswap_router::{MockSoroswapRouter, MockSoroswapRouterClient};
 use nebula_oracle_router::{NebulaOracleRouter, NebulaOracleRouterClient};
 use soroban_sdk::testutils::{Address as _, Ledger};
 use soroban_sdk::token::{StellarAssetClient, TokenClient};
-use soroban_sdk::{vec, Address, BytesN, Env, String, Vec};
+use soroban_sdk::{vec, Address, Env, String, Vec};
 
 const NOW: u64 = 1_760_000_000;
 const MAX_AGE: u64 = 3_600;
@@ -384,8 +384,8 @@ fn setup_single_asset(rate_1: i128, rate_2: i128) -> SingleAssetSetup {
     let s = setup();
     s.folio.init_mint(&s.user, &deposits(&s, GOOD_DEPOSITS));
 
-    let router_id = s.e.register(MockAquariusRouter, (&s.admin,));
-    let router = MockAquariusRouterClient::new(&s.e, &router_id);
+    let router_id = s.e.register(MockSoroswapRouter, (&s.admin,));
+    let router = MockSoroswapRouterClient::new(&s.e, &router_id);
     let t0 = s.tokens.get_unchecked(0);
     let t1 = s.tokens.get_unchecked(1);
     let t2 = s.tokens.get_unchecked(2);
@@ -395,17 +395,7 @@ fn setup_single_asset(rate_1: i128, rate_2: i128) -> SingleAssetSetup {
     s.sac_admins[1].mint(&router_id, &(1_000_000 * D7));
     s.sac_admins[2].mint(&router_id, &(1_000_000_000 * D7));
 
-    s.folio.set_aquarius_router(&router_id);
-    s.folio.set_aquarius_route(
-        &t0,
-        &t1,
-        &vec![&s.e, (vec![&s.e, t0.clone(), t1.clone()], BytesN::from_array(&s.e, &[0; 32]), t1.clone())],
-    );
-    s.folio.set_aquarius_route(
-        &t0,
-        &t2,
-        &vec![&s.e, (vec![&s.e, t0.clone(), t2.clone()], BytesN::from_array(&s.e, &[0; 32]), t2.clone())],
-    );
+    s.folio.set_soroswap_router(&router_id);
 
     let depositor = Address::generate(&s.e);
     s.sac_admins[0].mint(&depositor, &(1_000 * D7));
@@ -476,8 +466,8 @@ fn mint_single_asset_rejects_when_paused() {
 #[test]
 fn mint_single_asset_requires_bootstrap() {
     let s = setup(); // no init_mint
-    let router_id = s.e.register(MockAquariusRouter, (&s.admin,));
-    s.folio.set_aquarius_router(&router_id);
+    let router_id = s.e.register(MockSoroswapRouter, (&s.admin,));
+    s.folio.set_soroswap_router(&router_id);
     let depositor = Address::generate(&s.e);
     s.sac_admins[0].mint(&depositor, &(1_000 * D7));
     assert_eq!(
@@ -524,7 +514,7 @@ fn mint_single_asset_rejects_below_min_shares_out() {
 }
 
 #[test]
-fn mint_single_asset_rejects_when_aquarius_not_configured() {
+fn mint_single_asset_rejects_when_soroswap_not_configured() {
     let s = setup();
     s.folio.init_mint(&s.user, &deposits(&s, GOOD_DEPOSITS));
     let depositor = Address::generate(&s.e);
@@ -537,6 +527,6 @@ fn mint_single_asset_rejects_when_aquarius_not_configured() {
             &(1),
             &DEADLINE,
         ),
-        Err(Ok(FolioError::AquariusNotConfigured.into()))
+        Err(Ok(FolioError::SoroswapNotConfigured.into()))
     );
 }

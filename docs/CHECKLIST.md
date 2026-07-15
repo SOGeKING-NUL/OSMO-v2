@@ -52,7 +52,7 @@ Tick an item only when its code exists **and** its test passes. Full context in
 ### Stage 1.5 — Frontend + UX
 - [ ] PasskeyKit onboarding (Face-ID wallet) — 🚧 blocked on Launchtube token (Freighter shipped as interim wallet, ADR-013)
 - [ ] Launchtube fee sponsorship wired — 🚧 blocked on Launchtube token
-- [x] Folio page: composition donut, live NAV (5s poll), user shares & position value (`osmo/`, builds clean, live-testnet read smoke test passing)
+- [x] Folio page: composition donut, live NAV (5s poll), user shares & position value (`app/`, builds clean, live-testnet read smoke test passing)
 - [x] Mint/redeem flows with asset-ratio helper (simulate-first quote shows exact deposits; 0.5% buffered `max_deposits`) — browser-verified with Freighter 2026-07-08
 - [x] Oracle prices are real, not arbitrary (ADR-014, 2026-07-06): off-chain relay reads live mainnet Reflector prices (XLM/AQUA/EURC) into our testnet `MockPriceFeed`; USDC fixed at oracle's own $1.00 base; only VELO (no Reflector coverage, confirmed) stays a labeled simulated placeholder. DIA dropped as a second source (confirmed unnecessary — Reflector alone is free, sufficient); router's dual-feed capability stays built but unused.
 

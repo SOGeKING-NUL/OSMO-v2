@@ -1,0 +1,78 @@
+:root {
+  color-scheme: dark;
+  --bg: #0d1117;
+  --card: #161b22;
+  --line: #30363d;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --accent: #9f4ef5;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main { max-width: 720px; margin: 0 auto; padding: 16px; }
+header { display: flex; justify-content: space-between; align-items: center; }
+h1 { font-size: 1.5rem; }
+.accent { color: var(--accent); }
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px;
+  margin: 12px 0;
+}
+.faucet { border-color: var(--accent); }
+.faucet p { color: var(--muted); font-size: 0.9rem; }
+.highlight { border-color: var(--accent); background: linear-gradient(180deg, rgba(159,78,245,0.10), var(--card)); }
+.muted { color: var(--muted); font-size: 0.9rem; }
+.single-deposit { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.single-deposit input { flex: 1; min-width: 180px; margin-bottom: 0; }
+.single-deposit button { white-space: nowrap; }
+.quote-inline { color: var(--accent); font-weight: 600; }
+.navrow { display: flex; gap: 24px; flex-wrap: wrap; }
+.label { color: var(--muted); font-size: 0.8rem; }
+.big { font-size: 1.4rem; font-weight: 600; }
+.composition { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+.donut { width: 130px; height: 130px; flex-shrink: 0; }
+table { border-collapse: collapse; flex: 1; }
+th, td { text-align: left; padding: 4px 12px 4px 0; }
+th { color: var(--muted); font-weight: 500; font-size: 0.8rem; }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+button {
+  background: var(--accent);
+  color: #fff;
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+button:disabled { opacity: 0.45; cursor: default; }
+.trustline-banner {
+  background: rgba(240, 136, 62, 0.12);
+  border: 1px solid #f0883e;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+}
+.trustline-banner p { margin: 0 0 8px; color: #f0883e; font-size: 0.9rem; }
+input {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 8px 10px;
+  width: 100%;
+  margin-bottom: 8px;
+}
+.actions { display: flex; gap: 24px; flex-wrap: wrap; }
+.actions > div { flex: 1; min-width: 220px; }
+.quote { color: var(--muted); font-size: 0.9rem; padding-left: 18px; margin: 4px 0 8px; }
+.status { color: var(--accent); word-break: break-word; }
+.warn { color: #f0883e; }
+.wallet { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; }
+footer { color: var(--muted); font-size: 0.8rem; text-align: center; margin: 24px 0; }

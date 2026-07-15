@@ -4,8 +4,6 @@
 
 import {
   getAddress,
-  isAllowed,
-  isConnected,
   requestAccess,
   signTransaction,
 } from "@stellar/freighter-api";
@@ -24,7 +22,7 @@ import {
   ROUTER_ID,
   RPC_URL,
   TRUSTLINE_ASSETS,
-} from "@/lib/config";
+} from "../config";
 
 export interface AssetInfo {
   token: string;
@@ -84,39 +82,12 @@ async function getWriteClient(publicKey: string): Promise<AnyClient> {
 
 // --- wallet ---
 
-/** True when the Freighter extension is present in this browser. */
-export async function isFreighterAvailable(): Promise<boolean> {
-  try {
-    const res = await isConnected();
-    return !!res.isConnected;
-  } catch {
-    return false;
-  }
-}
-
 export async function connectWallet(): Promise<string> {
   const access = await requestAccess();
   if (access.error) throw new Error(access.error);
   const addr = await getAddress();
   if (addr.error) throw new Error(addr.error);
   return addr.address;
-}
-
-/**
- * Silent re-connect for page reloads: succeeds only if the user has already
- * authorized this site in Freighter, and never opens a popup. Returns null
- * when not previously authorized or the extension is unavailable.
- */
-export async function reconnectWallet(): Promise<string | null> {
-  try {
-    const allowed = await isAllowed();
-    if (allowed.error || !allowed.isAllowed) return null;
-    const addr = await getAddress();
-    if (addr.error || !addr.address) return null;
-    return addr.address;
-  } catch {
-    return null;
-  }
 }
 
 // --- trustlines ---

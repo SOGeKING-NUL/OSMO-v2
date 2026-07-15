@@ -91,7 +91,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
 
         <footer className="py-6 text-center text-xs text-muted-foreground">
-          Testnet · deposit-XLM single-asset mint via Aquarius · redemption is
+          Testnet · deposit-XLM single-asset mint via Soroswap · redemption is
           never pausable
         </footer>
       </div>

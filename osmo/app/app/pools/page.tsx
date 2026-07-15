@@ -81,10 +81,10 @@ export default function PoolsPage() {
             </TableHeader>
             <TableBody>
               {POOLS.map((p) => {
-                const r = pools[p.key];
+                const r = pools[p.id];
                 const pd = prices[p.token];
                 return (
-                  <TableRow key={p.key}>
+                  <TableRow key={p.id}>
                     <TableCell className="font-medium text-foreground">
                       <Dot color={TOKEN_INFO[p.token]?.color} />
                       {p.pair}
