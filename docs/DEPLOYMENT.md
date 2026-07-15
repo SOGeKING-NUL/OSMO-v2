@@ -5,7 +5,8 @@ Living reference: **overwrite this file after every redeploy**, unlike `DECISION
 answers one question: "what's live right now, and who controls it."
 
 Source of truth for addresses: `.stellar/nebula-testnet.json` (git-ignored, machine-local) and
-`osmo/.env` / `osmo/lib/config.ts` (frontend; `osmo/.env.example` is the checked-in template).
+`app/.env` (git-ignored — holds a secret, see below; `app/.env.example` is the checked-in
+template).
 
 ---
 
@@ -42,9 +43,7 @@ OSMO now uses the Aquarius AMM entry contract for `mint_single_asset`.
 
 | Contract | Address |
 |---|---|
-| Aquarius AMM entry (**testnet**) | [`CBCFTQSPDBAIZ6R6PJQKSQWKNKWH2QIV3I4J72SHWBIK3ADRRAM5A6GD`](https://stellar.expert/explorer/testnet/contract/CBCFTQSPDBAIZ6R6PJQKSQWKNKWH2QIV3I4J72SHWBIK3ADRRAM5A6GD) |
-| Aquarius AMM entry (mainnet — do not use with testnet UI) | [`CBQDHNBFBZYE4MKPWBSJOPIYLW4SFSXAXUTSXJN76GNKYVYPCKWC6QUK`](https://stellar.expert/explorer/public/contract/CBQDHNBFBZYE4MKPWBSJOPIYLW4SFSXAXUTSXJN76GNKYVYPCKWC6QUK) |
-| Aquarius test-asset issuer | `GAHPYWLK6YRN7CVYZOO4H3VDRZ7PVF5UJGLZCSPAEIKJE2XSWF5LAGER` |
+| Aquarius AMM entry (testnet) | [`CBQDHNBFBZYE4MKPWBSJOPIYLW4SFSXAXUTSXJN76GNKYVYPCKWC6QUK`](https://stellar.expert/explorer/testnet/contract/CBQDHNBFBZYE4MKPWBSJOPIYLW4SFSXAXUTSXJN76GNKYVYPCKWC6QUK) |
 
 The folio stores one Aquarius route for each XLM -> basket-token leg via
 `set_aquarius_route(token_in, token_out, route)`. Route entries use Aquarius'
@@ -71,9 +70,9 @@ fresh folio.
 | Identity | Address | Role |
 |---|---|---|
 | **`nebula-admin`** | `GA45OKGDSZ62BTHWDTJXTPCVRQANB75A7WU6WJL3XQIY2FBCKFJJFU5N` | **Owner of every contract above.** Deployed Factory/OracleRouter/MockPriceFeed; set as `admin` on the Folio and router. Can pause/unpause the Folio, change oracle feeds/config, push a new Folio version via the factory. |
-| `nebula-test-issuer` | `GDIYTKW2SS3OVYPHZJ2QOJSSKVPME5GQLRHDJNZ3OZRP6QJHAEFXTZT3` | Issuer of the 4 fake test tokens. No control over any contract — only power is minting more of those 4 worthless assets. Its secret is the one embedded in the app's faucet (`NEXT_PUBLIC_TEST_ISSUER_SECRET`, testnet-only — see `osmo/.env.example`). |
+| `nebula-test-issuer` | `GDIYTKW2SS3OVYPHZJ2QOJSSKVPME5GQLRHDJNZ3OZRP6QJHAEFXTZT3` | Issuer of the 4 fake test tokens. No control over any contract — only power is minting more of those 4 worthless assets. Its secret is the one embedded in the app's faucet (`VITE_TEST_ISSUER_SECRET`, testnet-only — see `app/.env.example`). |
 | `nebula-user` | `GDX3PNEUFDL33DQUSOSL2ZFULRUE3OVZOESMK3FR6ERS7DWJXYQSOL7J` | Plain demo account, no admin rights. Holds the first ~99.99998 SEF shares from performing the original bootstrap deposit. |
 
 Get any secret locally with `stellar keys secret <name>` — never commit these; `nebula-admin`'s
 and `nebula-user`'s never need to leave your machine, `nebula-test-issuer`'s is the one
-intentionally placed in `osmo/.env` (git-ignored) for the faucet.
+intentionally placed in `app/.env` (git-ignored) for the faucet.

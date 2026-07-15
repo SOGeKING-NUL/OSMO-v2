@@ -1,15 +1,15 @@
 // TESTNET-ONLY faucet: signs payments as the token issuer directly in the
-// browser (see .env.example for why that's an acceptable trade-off here, and
-// why it must never be done for a real/mainnet issuer). Payments FROM the
-// issuing account are how new units of a classic Stellar asset get into
-// circulation - no separate "mint" call needed, unlike the SAC/Soroban side.
+// browser (see .env for why that's an acceptable trade-off here, and why it
+// must never be done for a real/mainnet issuer). Payments FROM the issuing
+// account are how new units of a classic Stellar asset get into circulation
+// - no separate "mint" call needed, unlike the SAC/Soroban side.
 //
 // The destination must already trust each asset (see getMissingTrustlines /
 // addTrustlines in lib/folio.ts) - a payment to an untrusted asset fails the
 // same way a Folio transfer would.
 
 import { Asset, Horizon, Keypair, Operation, TransactionBuilder } from "@stellar/stellar-sdk";
-import { FAUCET_AMOUNTS, HORIZON_URL, NETWORK_PASSPHRASE, TEST_ISSUER_SECRET, TRUSTLINE_ASSETS } from "@/lib/config";
+import { FAUCET_AMOUNTS, HORIZON_URL, NETWORK_PASSPHRASE, TEST_ISSUER_SECRET, TRUSTLINE_ASSETS } from "../config";
 
 const horizon = new Horizon.Server(HORIZON_URL);
 

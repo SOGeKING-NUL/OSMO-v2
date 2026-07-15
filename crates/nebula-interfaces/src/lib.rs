@@ -7,7 +7,7 @@
 
 #![no_std]
 
-use soroban_sdk::{contractclient, contracterror, contracttype, Address, BytesN, Env, Symbol, Vec};
+use soroban_sdk::{contractclient, contracterror, contracttype, Address, Env, Symbol, Vec};
 
 /// All prices returned by the OracleRouter are normalized to this many
 /// decimals (matches Reflector's native 14).
@@ -50,36 +50,41 @@ pub trait OracleRouterApi {
     fn price(env: Env, token: Address) -> PriceData;
 }
 
-/// Placeholder error type for [`AquariusRouterApi`] — we never inspect the
-/// real Aquarius AMM error variants, only whether the call succeeded;
+/// Placeholder error type for [`SoroswapRouterApi`] — we never inspect the
+/// real `CombinedRouterError` variants, only whether the call succeeded;
 /// any failure (ours or theirs) propagates as a trap, which is exactly the
 /// atomic all-or-nothing behavior `mint_single_asset` wants.
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum AquariusError {
+pub enum SoroswapError {
     Unknown = 1,
 }
 
-/// One Aquarius route hop: `(ordered_pool_tokens, pool_index_hash, token_out)`.
-/// This matches the public Aquarius `swap_chained` contract signature.
-pub type AquariusSwap = (Vec<Address>, BytesN<32>, Address);
-
-/// Minimal client for the Aquarius AMM entry contract. Production Aquarius
-/// exposes `swap_chained(user, swaps_chain, token_in, in_amount, out_min)`;
-/// `mint_single_asset` stores the configured `swaps_chain` for each basket leg
-/// and spends exact input amounts so the folio can authorize those transfers
-/// precisely.
-#[contractclient(name = "AquariusRouterClient")]
-pub trait AquariusRouterApi {
-    /// Swap exactly `in_amount` of `token_in` owned by `user` along the route,
-    /// returning the final output amount. Any Aquarius failure traps, keeping
-    /// the whole mint atomic.
-    fn swap_chained(
+/// Minimal client for the real, third-party Soroswap Router (not a Nebula
+/// contract) — just the two functions `mint_single_asset` needs. Verified
+/// against the real deployed contract 2026-07-06 (see DECISION_LOG ADR-016):
+/// testnet `CCJUD55AG6W5HAI5LRVNKAE5WDP5XGZBUDS5WNTIVDU7O264UZZE7BRD`.
+///
+/// We use exact-*input* (not exact-output) swaps: `mint_single_asset` decides
+/// exactly how much it spends per leg, so it can pre-authorize that exact
+/// transfer via `authorize_as_current_contract` (auth entries must match args
+/// exactly — an exact-output swap's input isn't known until execution).
+#[contractclient(name = "SoroswapRouterClient")]
+pub trait SoroswapRouterApi {
+    /// Swap exactly `amount_in` of `path[0]` for as much `path[last]` as
+    /// possible (at least `amount_out_min`), sent to `to`. Returns the amount
+    /// at each hop; traps on `amount_out_min` slippage or expired `deadline`.
+    fn swap_exact_tokens_for_tokens(
         env: Env,
-        user: Address,
-        swaps_chain: Vec<AquariusSwap>,
-        token_in: Address,
-        in_amount: u128,
-        out_min: u128,
-    ) -> Result<u128, AquariusError>;
+        amount_in: i128,
+        amount_out_min: i128,
+        path: Vec<Address>,
+        to: Address,
+        deadline: u64,
+    ) -> Result<Vec<i128>, SoroswapError>;
+
+    /// Deterministic address of the `token_a`/`token_b` pool (CREATE2-style —
+    /// returns an address whether or not a pool is deployed there). Needed as
+    /// the `to` of the swap's input transfer, which we must pre-authorize.
+    fn router_pair_for(env: Env, token_a: Address, token_b: Address) -> Result<Address, SoroswapError>;
 }

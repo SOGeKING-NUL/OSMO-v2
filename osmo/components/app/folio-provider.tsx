@@ -82,8 +82,8 @@ export function FolioProvider({ children }: { children: React.ReactNode }) {
     if (assets.length) {
       fetchAssetPrices(assets.map((a) => a.token)).then(setPrices);
     }
-    Promise.all(POOLS.map((p) => fetchPoolReserves(p.poolIndex, p.token))).then((rs) =>
-      setPools(Object.fromEntries(POOLS.map((p, i) => [p.key, rs[i]]))),
+    Promise.all(POOLS.map((p) => fetchPoolReserves(p.id))).then((rs) =>
+      setPools(Object.fromEntries(POOLS.map((p, i) => [p.id, rs[i]]))),
     );
   }, [address, assets]);
 

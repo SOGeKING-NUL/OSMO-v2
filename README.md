@@ -18,19 +18,8 @@ contracts/folio               the DTF: basket custody + SEP-41 share token + min
 contracts/factory             deploys folios from a versioned wasm hash, registry
 contracts/mock-price-feed     settable SEP-40 feed (tests/testnet only — never mainnet)
 scripts/                      build+test, testnet bootstrap, price refresh
-osmo/                         main web UI (Next.js; `cd osmo && npm run dev`; Freighter wallet)
+app/                          folio web app (Vite+React; `npm run dev`; Freighter wallet)
 ```
-
-## Frontend
-
-```bash
-cd osmo
-npm install   # first time only
-npm run dev   # http://127.0.0.1:3000
-```
-
-Public testnet addresses are baked into `osmo/lib/config.ts`; override via `osmo/.env`
-(see `osmo/.env.example`) after a redeploy.
 
 ## Build & test
 

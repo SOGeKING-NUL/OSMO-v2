@@ -1,6 +1,6 @@
 [package]
 name = "nebula-mock-soroswap-router"
-description = "Fixed-rate stand-in for Aquarius AMM routing, for unit testing mint_single_asset in isolation"
+description = "Fixed-rate stand-in for the Soroswap Router, for unit testing mint_single_asset in isolation"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

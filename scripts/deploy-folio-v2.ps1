@@ -87,4 +87,4 @@ Invoke-Stellar contract invoke --id $folio --source nebula-user --network $Netwo
 Write-Host "== 5. Persist new folio address"
 $cfg.folio_sef = $folio
 $cfg | ConvertTo-Json | Out-File -Encoding utf8 .stellar\nebula-testnet.json
-Write-Host "Done. Folio v2: $folio  (update osmo/.env NEXT_PUBLIC_FOLIO_ID)"
+Write-Host "Done. Folio v2: $folio  (update app/.env VITE_FOLIO_ID)"
